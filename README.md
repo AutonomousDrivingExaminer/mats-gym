@@ -1,28 +1,32 @@
 # Multi-Agent Traffic Scenario Gym
 
-This gym environment allows you to train autonomous driving agents to navigate traffic scenarios in the CARLA simulator.
-Scenario Gym connects multiple scenario generation engines for scenario based testing and exposes agent control via a 
-Gymnasium and PettingZoo interface.
-Currently we support scenarios that are expressed in [Scenic](https://github.com/BerkeleyLearnVerify/Scenic),
-[ScenarioRunner](https://github.com/carla-simulator/scenario_runner) and [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/) (via ScenarioRunner).
+MATS-Gym is a [PettingZoo](https://pettingzoo.farama.org/index.html) environment for training and evaluating autonomous driving agents in CARLA.
+Environments can be created from scenarios that are implemented as [ScenarioRunner](https://github.com/carla-simulator/scenario_runner) scenarios,
+allowing to leverage a large number of existing driving scenarios. 
+Furthermore, we provide an integration with [Scenic](https://github.com/BerkeleyLearnVerify/Scenic) to which allows us to sample scenarios from Scenic specifications.
 
-The main features of this environment are:
-- Supports multiple scenario generation engines
-  - Scenic, OpenScenario, ScenarioRunner
+## Main Features
+- Supports multiple scenario specification standards:
+  - [Scenic](https://github.com/BerkeleyLearnVerify/Scenic)
+  - [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)
+  - [ScenarioRunner](https://github.com/carla-simulator/scenario_runner)
   - Full compatibility with [CARLA Challenge](https://leaderboard.carla.org/challenge/) scenarios
-- Multi-Agent environment 
+- Multi-Agent environment
 - Determinism and reproducibility (via replay functionality)
-- Useful wrappers included:
-  - Observation space wrapper for [birdview observations](https://github.com/deepsense-ai/carla-birdeye-view)
-  - High level meta-actions (e.g. turn left, turn right, go straight)
-  - Autonomous agent wrapper to easily run a pre-trained autonomous agent
+- Various types of observations:
+  - [Birdview](https://github.com/deepsense-ai/carla-birdeye-view)
+  - Sensor data (e.g. RGB camera, depth camera, lidar)
+  - Map data (e.g. lane centerlines, lane boundaries, traffic lights)
+- Action spaces:
+  - High level meta-actions (e.g. turn left, turn right, go straight, change lane)
+  - Low level continuous control (throttle, brake, steer)
 
 ## Installation
 For now, you need to install the package from source. We recommend using a virtual environment.
 
 To install the package, run the following command:
 ```bash
-pip install git+https://github.com/AutonomousDrivingExaminer/adex-gym
+pip install git+https://github.com/AutonomousDrivingExaminer/mats-gym
 ```
 
 ## Usage
@@ -39,9 +43,7 @@ Furthermore, we provide adapters that handle sampling and initialization of scen
 ### Examples
 First, make sure that CARLA is running (if you have docker installed, you can use `./scripts/start-carla.sh` to run it).
 
-The following code snippet, shows you how the general workflow of using the environment looks like. There we first implement
-a function `make_scenario` that handles the setup and initialization of the scenario. Then we pass this function to the
-`BaseScenarioEnv` class, which handles the rest of the simulation.
+The following code snippet, shows you how to use a scenic scenario to create an environment instance:
 
 ```python
 import gymnasium
@@ -49,16 +51,14 @@ import mats_gym
 from mats_gym.envs import renderers
 
 
-def make_scenario() -> BasicScenario:
-  scenario = ...
-  return scenario
-
-
-env = gymnasium.make(
-  id="ScenarioEnv-v0",
-  scenario_fn=make_scenario,
-  render_mode="human",
-  render_config=renderers.camera_pov()
+env = mats_gym.scenic_env(
+  host="localhost",  # The host to connect to
+  port=2000,  # The port to connect to
+  scenario_specification="scenarios/scenic/carla_challenge_08.scenic",
+  scenes_per_scenario=5,  # How many scenes should be generated per scenario
+  agent_name_prefixes=["sut", "adv"], # Each actor whose role-name starts with one of the prefixes is an agent.
+  render_mode="human",  # The render mode. Can be "human" or "rgb_array".
+  render_config=renderers.camera_pov(agent="sut"),
 )
 
 obs, info = env.reset()
@@ -71,54 +71,3 @@ env.close()
 ```
 
 For more examples, have a look at the [examples](mats_gym/examples) directory.
-
-### Gymnasium Interface: Action, Observations and Rewards
-**Action Space:**
-The unwrapped action space is a dictionary which maps the role-name of the agent to a numpy array of dimension 3.
-The action will be mapped to a `carla.VehicleControl` object. The dimensions of the array are mapped as follows:
-```python
-vehicle_control = carla.VehicleControl(
-    throttle=action[0],
-    steer=action[1],
-    brake=action[2],
-)
-```
-The bounds of the action space for each agent are:
-
-| Action   |min|max|type|
-|----------|---|---|---|
-| Throttle |0  |1  | float32 |
-| Steer    |-1 |1  | float32 |
-| Brake    |0  |1  | float32 |
-
-For instance, the action space of an environment with three agents, could look like this:
-```python
-Dict({
-  "adv_1": Box(low=[0.,-1.,0.], high=[1.0,-1.0, 0.0], shape=(3,), dtype=float32), 
-  "adv_2": Box(low=[0.,-1.,0.], high=[1.0,-1.0, 0.0], shape=(3,), dtype=float32), 
-  "sut": Box(low=[0.,-1.,0.], high=[1.0,-1.0, 0.0], shape=(3,), dtype=float32)
-})
-```
-
-**Observation Space:**
-The observation space is a dictionary which maps the role-name of the agent to a numpy array of dimension 6, which
-contains the following information:
-- x, y, z position of the agent
-- x, y, z velocity component of the agent
-
-Wrappers, such as the [BirdViewObservationWrapper](mats_gym/wrappers/birdview.py) can be used to transform the observation
-space. For more information, have a look at the class definitions.
-
-**Reward Function:**
-The reward function resembles the evaluation score of the carla leaderboard challenge. Based on the evaluation criteria
-for each agent, the reward is calculated according to the [driving score](https://leaderboard.carla.org/#evaluation-and-metrics).
-Note that rewards are only computed at the end of the episode. This can be changed by using wrappers for instance.
-
-**Info dictionary:**
-The info dictionary contains lots additional information about the environment. 
-The following keys are always present:
-- `current_frame`: The current frame of the simulation
-- `history`: The current recorder log of the carla simulation (see [https://carla.readthedocs.io/en/latest/adv_recorder/](https://carla.readthedocs.io/en/latest/adv_recorder/))
-- `agent_info`: A dictionary that holds agent-specific information. Each agent has a dictionary with the following keys:
-  - `events`: A list of traffic events (tracked by the scenario) t*hat occurred during the episode.*
-  - `eval_info`: A dictionary that holds the evaluation information for the agent. This is only present at the end of the episode.
