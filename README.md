@@ -1,4 +1,7 @@
 # Multi-Agent Traffic Scenario Gym
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Python 3.9](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-310/)
 
 MATS-Gym is a [PettingZoo](https://pettingzoo.farama.org/index.html) environment for training and evaluating autonomous driving agents in CARLA.
 Environments can be created from scenarios that are implemented as [ScenarioRunner](https://github.com/carla-simulator/scenario_runner) scenarios,
