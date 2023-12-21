@@ -36,7 +36,7 @@ def make_policy(agent_name: str, action_space: gymnasium.Space) -> Callable[[], 
         """
         return np.array(
             [
-                0,   # throttle
+                0,  # throttle
                 np.random.rand() - 0.5,  # steer
                 0.0,  # brake
             ]

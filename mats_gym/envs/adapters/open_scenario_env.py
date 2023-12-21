@@ -23,13 +23,12 @@ ScenarioConstructor = Callable[[carla.World, ScenarioConfiguration], BasicScenar
 
 
 class OpenScenarioEnv(BaseScenarioEnvWrapper):
-
     def __init__(
-            self,
-            client: carla.Client,
-            scenario_files: str | list[str],
-            timeout: int = 60,
-            **kwargs
+        self,
+        client: carla.Client,
+        scenario_files: str | list[str],
+        timeout: int = 60,
+        **kwargs,
     ) -> None:
         if isinstance(scenario_files, str):
             scenario_files = [scenario_files]
@@ -43,7 +42,7 @@ class OpenScenarioEnv(BaseScenarioEnvWrapper):
             for vehicle_config in config.ego_vehicles:
                 ego_vehicles.append(ActorConfiguration(**vehicle_config.__dict__))
             config.ego_vehicles = ego_vehicles
-            
+
         self._config_files = scenario_files
         self._next_scenario = 0
         self._timeout = timeout
@@ -52,11 +51,13 @@ class OpenScenarioEnv(BaseScenarioEnvWrapper):
             client=client,
             config=self._configs[0],
             scenario_fn=self._make_scenario,
-            **kwargs
+            **kwargs,
         )
         super().__init__(env)
 
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[dict, dict[Any, dict]]:
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict, dict[Any, dict]]:
         options = options or {}
         options["scenario_config"] = self._configs[self._next_scenario]
         self._next_scenario = (self._next_scenario + 1) % len(self._configs)
@@ -66,13 +67,15 @@ class OpenScenarioEnv(BaseScenarioEnvWrapper):
         logging.debug(f"Creating OpenSCENARIO instance.")
         config_file = self._config_files[self._next_scenario]
         logging.debug(f"Spawning {len(config.ego_vehicles)} ego actors.")
-        ego_vehicles = CarlaDataProvider.request_new_actors(config.ego_vehicles, tick=False)
+        ego_vehicles = CarlaDataProvider.request_new_actors(
+            config.ego_vehicles, tick=False
+        )
         scenario = OpenScenario(
             world=client.get_world(),
             ego_vehicles=ego_vehicles,
             config=config,
             config_file=config_file,
             timeout=self._timeout,
-            debug_mode=False
+            debug_mode=False,
         )
         return scenario

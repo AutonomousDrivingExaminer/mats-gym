@@ -36,13 +36,15 @@ def policy():
             0.0,  # brake
         ]
     )
+
+
 def show_obs(obs, agent):
     """
     Displays the birdview observation of the given agent. The layers are collapsed into a single RGB image.
     """
-    img = obs[agent]['birdview']
+    img = obs[agent]["birdview"]
     obs = BirdViewProducer.as_rgb(img)
-    cv2.imwrite('img.png', obs)
+    cv2.imwrite("img.png", obs)
     cv2.waitKey(10)
 
 
@@ -89,8 +91,12 @@ def main():
         )
         tasks[agent] = task
 
-    env = TaskWrapper(env=env, tasks=tasks, ignore_wrapped_env_reward=True, ignore_wrapped_env_termination=False)
-
+    env = TaskWrapper(
+        env=env,
+        tasks=tasks,
+        ignore_wrapped_env_reward=True,
+        ignore_wrapped_env_termination=False,
+    )
 
     for _ in range(NUM_EPISODES):
         obs, info = env.reset()
@@ -99,7 +105,7 @@ def main():
         while not done:
             actions = {agent: policy() for agent in env.agents}
             obs, reward, done, truncated, info = env.step(actions)
-            show_obs(obs, 'vehicle_1')
+            show_obs(obs, "vehicle_1")
             for agent, reward in reward.items():
                 rewards[agent] += reward
             print(

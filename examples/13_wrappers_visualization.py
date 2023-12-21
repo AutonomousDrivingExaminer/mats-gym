@@ -62,7 +62,7 @@ def main():
                 rotation=rot,
                 thickness=0.1,
                 color=carla.Color(*colors[i]),
-                life_time=0.1
+                life_time=0.1,
             )
             for tf, _ in route:
                 begin = tf.location + carla.Location(z=0.1)
@@ -73,7 +73,7 @@ def main():
                     end=end,
                     arrow_size=0.05,
                     color=carla.Color(*colors[i]),
-                    life_time=0.1
+                    life_time=0.1,
                 )
 
     # The callback is then passed to the CarlaVisualizationWrapper. You can register multiple

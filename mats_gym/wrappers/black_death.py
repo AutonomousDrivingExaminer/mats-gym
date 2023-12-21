@@ -9,21 +9,37 @@ from mats_gym.envs.scenario_env_wrapper import BaseScenarioEnvWrapper
 
 
 class BlackDeathWrapper(BaseScenarioEnvWrapper):
+    """
+    A wrapper for a scenario environment that executes a default action after and returns
+    a zero observation and reward after for an agent after it has terminated.
+    """
 
-    def __init__(self, env: BaseScenarioEnv, default_action: dict[str, ActionType] = None):
+    def __init__(
+        self, env: BaseScenarioEnv, default_action: dict[str, ActionType] = None
+    ):
+        """
+        @param env: The environment to wrap.
+        @param default_action: A dictionary mapping agent names to default actions.
+        """
         super().__init__(env)
         if default_action is None:
-            default_action = {agent: np.zeros_like(self.action_space(agent).low) for agent in self.agents}
+            default_action = {
+                agent: np.zeros_like(self.action_space(agent).low)
+                for agent in self.agents
+            }
         self._default_action = default_action
         self._terminated = {agent: False for agent in self.agents}
 
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[
-        dict[AgentID, ObsType], dict[AgentID, dict]]:
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict[AgentID, ObsType], dict[AgentID, dict]]:
         obs, infos = super().reset(seed, options)
         self._terminated = {agent: False for agent in self.agents}
         return obs, infos
 
-    def step(self, actions: dict[AgentID, ActionType]) -> tuple[
+    def step(
+        self, actions: dict[AgentID, ActionType]
+    ) -> tuple[
         dict[AgentID, ObsType],
         dict[AgentID, float],
         dict[AgentID, bool],
@@ -31,9 +47,10 @@ class BlackDeathWrapper(BaseScenarioEnvWrapper):
         dict[AgentID, dict],
     ]:
         actions = {
-            agent: actions[agent] if not self._terminated[agent] else self._default_action[agent]
-            for agent
-            in self.agents
+            agent: actions[agent]
+            if not self._terminated[agent]
+            else self._default_action[agent]
+            for agent in self.agents
         }
         obs, rewards, terminated, truncated, infos = super().step(actions)
         for agent in obs:

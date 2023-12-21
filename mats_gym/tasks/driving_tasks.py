@@ -13,16 +13,22 @@ class TrackRouteMinCruiseSpeed(Task):
     Termination on route completion.
     """
 
-    def __init__(self, env, agent: str, target_velocity: float = 5.0, weights: list[float] = None):
+    def __init__(
+        self, env, agent: str, target_velocity: float = 5.0, weights: list[float] = None
+    ):
         super().__init__(agent=agent)
         self._env = env
         self._target_velocity = target_velocity
         self._waypoints = None
         self._weights = weights or [1.0, 1.0, 0.5, 5.0]
-        assert len(self._weights) == 4, f"expected 4 weights for (x, y, theta, v) error, got {len(self._weights)}"
+        assert (
+            len(self._weights) == 4
+        ), f"expected 4 weights for (x, y, theta, v) error, got {len(self._weights)}"
 
     def reward(self, obs: dict, action: dict, info: dict) -> float:
-        assert self._waypoints is not None, f"route is not defined for agent {self.agent}"
+        assert (
+            self._waypoints is not None
+        ), f"route is not defined for agent {self.agent}"
 
         position = obs[self.agent]["location"][:2]  # x, y position
         theta = np.deg2rad(obs[self.agent]["rotation"][-1])  # yaw angle in radians
@@ -30,10 +36,14 @@ class TrackRouteMinCruiseSpeed(Task):
         speed = obs[self.agent]["speed"]
 
         # process speed
-        speed = min(speed, self._target_velocity)  # saturate to target speed -> not penalized for going faster
+        speed = min(
+            speed, self._target_velocity
+        )  # saturate to target speed -> not penalized for going faster
 
         # find 2 closest waypoints
-        nearest_point, nearest_dist, t, i = self._nearest_point_on_trajectory(position, self._waypoints[:, :2])
+        nearest_point, nearest_dist, t, i = self._nearest_point_on_trajectory(
+            position, self._waypoints[:, :2]
+        )
 
         if i < len(self._waypoints) - 1:
             closest_waypoint = self._waypoints[i]
@@ -53,7 +63,8 @@ class TrackRouteMinCruiseSpeed(Task):
         reward = np.exp(-error)
 
         logging.debug(
-            f"agent {self.agent}: speed: {obs[self.agent]['speed']}, proc speed: {speed}, tracking error: {error:.2f}, reward: {reward:.2f}")
+            f"agent {self.agent}: speed: {obs[self.agent]['speed']}, proc speed: {speed}, tracking error: {error:.2f}, reward: {reward:.2f}"
+        )
 
         return reward
 
@@ -64,14 +75,21 @@ class TrackRouteMinCruiseSpeed(Task):
         return False
 
     def reset(self) -> None:
-        assert hasattr(self._env,
-                       "current_scenario"), "env does not have current_scenario, move the TaskWrapper after base env"
+        assert hasattr(
+            self._env, "current_scenario"
+        ), "env does not have current_scenario, move the TaskWrapper after base env"
 
         scenario = self._env.current_scenario
         assert scenario, "current scenario is not initialized"
 
-        matching_vconfigs = [v_config for v_config in scenario.config.ego_vehicles if v_config.rolename == self.agent]
-        assert len(matching_vconfigs) == 1, f"found {matching_vconfigs} vehicles matching agent id {self.agent}"
+        matching_vconfigs = [
+            v_config
+            for v_config in scenario.config.ego_vehicles
+            if v_config.rolename == self.agent
+        ]
+        assert (
+            len(matching_vconfigs) == 1
+        ), f"found {matching_vconfigs} vehicles matching agent id {self.agent}"
 
         route = matching_vconfigs[0].route
         assert route, f"agent {self.agent} does not have a route defined"
@@ -92,7 +110,9 @@ class TrackRouteMinCruiseSpeed(Task):
         ap = p - a
         ab = b - a
         t = np.dot(ap, ab) / np.dot(ab, ab)
-        t = max(0, min(1, t))  # if you need the the closest point belonging to the segment
+        t = max(
+            0, min(1, t)
+        )  # if you need the the closest point belonging to the segment
         result = a + t * ab
         return result
 
@@ -118,7 +138,12 @@ class TrackRouteMinCruiseSpeed(Task):
             temp = point - projections[i]
             dists[i] = np.sqrt(np.sum(temp * temp))
         min_dist_segment = np.argmin(dists)
-        return projections[min_dist_segment], dists[min_dist_segment], t[min_dist_segment], min_dist_segment
+        return (
+            projections[min_dist_segment],
+            dists[min_dist_segment],
+            t[min_dist_segment],
+            min_dist_segment,
+        )
 
 
 class SmoothDrivingTask(Task):
@@ -131,7 +156,9 @@ class SmoothDrivingTask(Task):
         self._prev_action = None
 
     def reward(self, obs: dict, action: dict, info: dict) -> float:
-        assert isinstance(action[self.agent], np.ndarray), "Action must be a numpy array"
+        assert isinstance(
+            action[self.agent], np.ndarray
+        ), "Action must be a numpy array"
         if self._prev_action is not None:
             scale = np.linalg.norm(np.ones(action[self.agent].shape))
             diff = self._prev_action - action[self.agent]
@@ -155,7 +182,9 @@ class DriveMinVelocityTask(Task):
     A task that rewards the agent for driving at a minimum velocity.
     """
 
-    def __init__(self, agent: str, target_velocity: float = 5.0, max_velocity: float = 15.0):
+    def __init__(
+        self, agent: str, target_velocity: float = 5.0, max_velocity: float = 15.0
+    ):
         """
         Constructor.
 
@@ -198,7 +227,9 @@ class SmoothControlTask(Task):
         super().__init__(agent)
 
     def reward(self, obs: dict, action: dict, info: dict) -> float:
-        assert isinstance(action[self.agent], np.ndarray), "Action must be a numpy array"
+        assert isinstance(
+            action[self.agent], np.ndarray
+        ), "Action must be a numpy array"
 
         # compute the normalized action magnitude
         scale = np.linalg.norm(np.ones(action[self.agent].shape))

@@ -2,23 +2,23 @@ from typing import Protocol, TypeVar
 
 import carla
 
-T = TypeVar('T', contravariant=True)
+T = TypeVar("T", contravariant=True)
+
 
 class Controller(Protocol[T]):
-
     def update(self, dt: float) -> T:
         ...
 
 
 class LongitudinalController(Controller[float]):
-
     def set_target_speed(self, target_speed: float):
         ...
 
-class LatitudinalController(Controller[float]):
 
+class LatitudinalController(Controller[float]):
     def set_target_waypoint(self, target_waypoint: carla.Waypoint):
         ...
+
 
 class VehiclePIDController(Controller[carla.VehicleControl]):
     """
@@ -27,16 +27,16 @@ class VehiclePIDController(Controller[carla.VehicleControl]):
     low level control a vehicle from client side
     """
 
-
     def __init__(
-            self,
-            vehicle: carla.Vehicle,
-            longitudinal_controller: LongitudinalController,
-            latitudinal_controller: LatitudinalController,
-            offset: float = 0,
-            max_throttle: float = 0.75,
-            max_brake: float = 0.3,
-            max_steering: float = 0.8):
+        self,
+        vehicle: carla.Vehicle,
+        longitudinal_controller: LongitudinalController,
+        latitudinal_controller: LatitudinalController,
+        offset: float = 0,
+        max_throttle: float = 0.75,
+        max_brake: float = 0.3,
+        max_steering: float = 0.8,
+    ):
         """
         Constructor method.
 
@@ -73,7 +73,9 @@ class VehiclePIDController(Controller[carla.VehicleControl]):
     def update(self, dt: float) -> carla.VehicleControl:
         return self.run_step(self.target_speed, self.target_waypoint)
 
-    def run_step(self, target_speed: float, waypoint: carla.Waypoint) -> carla.VehicleControl:
+    def run_step(
+        self, target_speed: float, waypoint: carla.Waypoint
+    ) -> carla.VehicleControl:
         """
         Execute one step of control invoking both lateral and longitudinal
         PID controllers to reach a target waypoint
@@ -114,7 +116,6 @@ class VehiclePIDController(Controller[carla.VehicleControl]):
         self.past_steering = steering
 
         return control
-
 
     def change_longitudinal_PID(self, args_longitudinal):
         """Changes the parameters of the PIDLongitudinalController"""

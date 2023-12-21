@@ -11,16 +11,25 @@ from mats_gym.scenarios.scenario_wrapper import CriteriaScenarioWrapper
 
 
 class CriteriaWrapper(BaseScenarioEnvWrapper):
+    """
+    Adds a list of additional criteria to the environment.
+    """
+
     def __init__(
-            self,
-            env: BaseScenarioEnvWrapper,
-            criteria_fns: list[Callable[[BasicScenario], Criterion]],
+        self,
+        env: BaseScenarioEnvWrapper,
+        criteria_fns: list[Callable[[BasicScenario], Criterion]],
     ):
+        """
+        @param env: The environment to wrap.
+        @param criteria_fns: A list of factory functions, given a scenario, that return additional criteria.
+        """
         super().__init__(env)
         self._criteria_fns = criteria_fns
 
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[
-        dict, dict[Any, dict]]:
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict, dict[Any, dict]]:
         wrapper = CriteriaScenarioWrapper(self._criteria_fns)
         options = options or {}
         options["scenario_wrappers"] = [wrapper]

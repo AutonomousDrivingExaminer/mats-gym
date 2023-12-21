@@ -262,7 +262,7 @@ class MapMaskGenerator:
                     img=canvas, pts=polygon, isClosed=False, color=COLOR_ON, thickness=1
                 )
         return canvas
-    
+
     def route_mask(self, route: List[carla.Waypoint]) -> Mask:
         canvas = self.make_empty_mask()
         if len(route) > 2:
@@ -272,7 +272,6 @@ class MapMaskGenerator:
                 img=canvas, pts=line, isClosed=False, color=COLOR_ON, thickness=4
             )
         return canvas
-        
 
     def agent_vehicle_mask(self, agent: carla.Actor) -> Mask:
         canvas = self.make_empty_mask()

@@ -21,11 +21,11 @@ from mats_gym.wrappers import ServerWrapper
 
 
 def worker(
-        index: int,
-        env_fn: Callable[[], BaseScenarioEnvWrapper],
-        pipe: Connection,
-        parent_pipe: Connection,
-        error_queue: Queue,
+    index: int,
+    env_fn: Callable[[], BaseScenarioEnvWrapper],
+    pipe: Connection,
+    parent_pipe: Connection,
+    error_queue: Queue,
 ):
     env = env_fn()
     parent_pipe.close()
@@ -78,18 +78,32 @@ def worker(
 
 
 class VecEnvWrapper(BaseScenarioEnvWrapper):
+    """
+    A wrapper that wraps a list of environments and runs them in parallel.
+    Work in progress.
+    """
 
     def __init__(
-            self,
-            env_fns: list[Callable[[], BaseScenarioEnvWrapper]],
-            termination_fn: Callable[[dict[AgentID, bool], dict[AgentID, bool]], bool] = None,
-            daemon: bool = False,
-            num_tries: int = 5,
-            timeout: float = 30.0,
+        self,
+        env_fns: list[Callable[[], BaseScenarioEnvWrapper]],
+        termination_fn: Callable[
+            [dict[AgentID, bool], dict[AgentID, bool]], bool
+        ] = None,
+        daemon: bool = False,
+        num_tries: int = 5,
+        timeout: float = 30.0,
     ):
+        """
+        @param env_fns: A list of environment constructors.
+        @param termination_fn: A function that determines when to terminate an episode.
+        @param daemon: Whether to run the workers as daemons.
+        @param num_tries: The number of times to try to reset a worker before giving up.
+        @param timeout: The timeout for communication with the workers.
+        """
         if termination_fn is None:
-            termination_fn = lambda terminated, truncated: all(terminated.values()) or all(
-                truncated.values())
+            termination_fn = lambda terminated, truncated: all(
+                terminated.values()
+            ) or all(truncated.values())
         self.metadata = {}
         self.num_envs = len(env_fns)
         self.parent_pipes, self.processes = [], []
@@ -116,7 +130,7 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
                         child_pipe,
                         parent_pipe,
                         self.error_queue,
-                    )
+                    ),
                 )
                 self.parent_pipes.append(parent_pipe)
                 self.processes.append(process)
@@ -127,14 +141,17 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
     def seed(self, seed: int | list[int]):
         if isinstance(seed, int):
             seed = [seed for _ in range(self.num_envs)]
-        assert len(seed) == self.num_envs, f"Expected {self.num_envs} seeds, got {len(seed)}."
+        assert (
+            len(seed) == self.num_envs
+        ), f"Expected {self.num_envs} seeds, got {len(seed)}."
         self._seeds = seed
 
     def update_options(self, options: dict | list[dict]):
         if isinstance(options, dict):
             options = [options for _ in range(self.num_envs)]
-        assert len(
-            options) == self.num_envs, f"Expected {self.num_envs} options, got {len(options)}."
+        assert (
+            len(options) == self.num_envs
+        ), f"Expected {self.num_envs} options, got {len(options)}."
         self._options = options
 
     def _spawn_envs(self, indices: list[int]):
@@ -153,7 +170,7 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
                     child_pipe,
                     parent_pipe,
                     self.error_queue,
-                )
+                ),
             )
             self.parent_pipes[idx] = parent_pipe
             self.processes[idx] = process
@@ -164,20 +181,29 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
     @property
     def agents(self, env_idx: int = 0) -> list[AgentID]:
         self.parent_pipes[env_idx].send(("_getattr", ("agents", [], {})))
-        result, index, success = self._receive_results(self.parent_pipes[env_idx],
-                                                       timeout=self.timeout)
+        result, index, success = self._receive_results(
+            self.parent_pipes[env_idx], timeout=self.timeout
+        )
         assert result is not None, f"Could not get agent list."
         return result
 
-    def single_action_space(self, agent: AgentID, idx: int = 0) -> gymnasium.spaces.Space:
+    def single_action_space(
+        self, agent: AgentID, idx: int = 0
+    ) -> gymnasium.spaces.Space:
         self.parent_pipes[idx].send(("action_space", agent))
-        result, index, success = self._receive_results(self.parent_pipes[idx], timeout=self.timeout)
+        result, index, success = self._receive_results(
+            self.parent_pipes[idx], timeout=self.timeout
+        )
         assert result is not None, f"Could not get action space for agent {agent}."
         return result
 
-    def single_observation_space(self, agent: AgentID, idx: int = 0) -> gymnasium.spaces.Space:
+    def single_observation_space(
+        self, agent: AgentID, idx: int = 0
+    ) -> gymnasium.spaces.Space:
         self.parent_pipes[idx].send(("observation_space", agent))
-        result, index, success = self._receive_results(self.parent_pipes[idx], timeout=self.timeout)
+        result, index, success = self._receive_results(
+            self.parent_pipes[idx], timeout=self.timeout
+        )
         assert result is not None, f"Could not get observation space for agent {agent}."
         return result
 
@@ -195,8 +221,9 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
         assert all(results), f"Could not get observation space for agents {agent}."
         return gymnasium.spaces.Tuple(results)
 
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[
-        dict[AgentID, ObsType], dict[AgentID, dict]]:
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict[AgentID, ObsType], dict[AgentID, dict]]:
         seed = seed or [None for _ in range(self.num_envs)]
         options = options or [None for _ in range(self.num_envs)]
         seedv, optionsv = [], []
@@ -235,9 +262,17 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
         for result, idx, success in results:
             if success:
                 logging.debug(f"Worker {idx} succeeded.")
-                obs[idx], rewards[idx], terminated[idx], truncated[idx], info[idx] = result
+                (
+                    obs[idx],
+                    rewards[idx],
+                    terminated[idx],
+                    truncated[idx],
+                    info[idx],
+                ) = result
                 if self.termination_fn(terminated[idx], truncated[idx]):
-                    logging.debug(f"Worker {index} detected termination condition. Resetting.")
+                    logging.debug(
+                        f"Worker {index} detected termination condition. Resetting."
+                    )
                     needs_reset.append(idx)
             else:
                 logging.debug(f"Worker {idx} failed. Error: {errors.get(idx, None)}.")
@@ -251,7 +286,7 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
         next_obs, next_info = self._try_reset(
             indices=needs_reset,
             seeds=[self._seeds[i] for i in resets],
-            options=[self._options[i] for i in resets]
+            options=[self._options[i] for i in resets],
         )
 
         for idx, o, i in zip(resets, next_obs, next_info):
@@ -265,7 +300,7 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
 
             i["__final__"] = {
                 "obs": copy.deepcopy(prev_obs),
-                "info": copy.deepcopy(prev_info)
+                "info": copy.deepcopy(prev_info),
             }
             obs[idx] = o
             info[idx] = i
@@ -294,7 +329,9 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
         for process in self.processes:
             process.join(timeout=0)
 
-    def _try_reset(self, indices: list[int], seeds: list[int | None], options: list[dict | None]):
+    def _try_reset(
+        self, indices: list[int], seeds: list[int | None], options: list[dict | None]
+    ):
         left_to_reset = indices.copy()
         seeds = {i: s for i, s in zip(indices, seeds)}
         options = {i: o for i, o in zip(indices, options)}
@@ -302,13 +339,11 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
         attempt = 0
         while len(left_to_reset) > 0 and attempt < self.num_tries:
             logging.debug(
-                f"Attempt {attempt + 1}/{self.num_tries} to reset {len(left_to_reset)} environments.")
+                f"Attempt {attempt + 1}/{self.num_tries} to reset {len(left_to_reset)} environments."
+            )
             for idx in left_to_reset:
                 pipe = self.parent_pipes[idx]
-                kwargs = {
-                    "seed": seeds[idx],
-                    "options": options[idx]
-                }
+                kwargs = {"seed": seeds[idx], "options": options[idx]}
                 logging.debug(f"Sending reset command to worker {idx}.")
                 pipe.send(("reset", kwargs))
 
@@ -355,7 +390,9 @@ class VecEnvWrapper(BaseScenarioEnvWrapper):
                 break
         return errors
 
-    def _receive_results(self, pipe: Connection | list[Connection], timeout: float = 5.0):
+    def _receive_results(
+        self, pipe: Connection | list[Connection], timeout: float = 5.0
+    ):
         single = False
         if isinstance(pipe, Connection):
             single = True
@@ -390,7 +427,7 @@ def env_fn(port):
     return env
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import cv2
     import time
 
@@ -402,7 +439,8 @@ if __name__ == '__main__':
     done = False
     agents = [f"vehicle_{i}" for i in range(4)]
     action_space = gymnasium.spaces.Dict(
-        {agent: vec_env.single_action_space(agent) for agent in agents})
+        {agent: vec_env.single_action_space(agent) for agent in agents}
+    )
     start = time.time()
     num_steps = 0
     for i in range(500):

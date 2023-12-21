@@ -52,7 +52,7 @@ class MaxVelocityTest(Criterion):
                 event_type="velocity_limit",
                 message="Velocity limit exceeded",
                 dictionary={"velocity": velocity, "max_velocity": self.max_velocity},
-                frame=GameTime.get_frame()
+                frame=GameTime.get_frame(),
             )
             self.events.append(event)
         else:
@@ -86,9 +86,7 @@ def main():
     )
     env = CriteriaWrapper(
         env=env,
-        criteria_fns=[
-            lambda s: MaxVelocityTest(s.ego_vehicles[0], max_velocity=10)
-        ]
+        criteria_fns=[lambda s: MaxVelocityTest(s.ego_vehicles[0], max_velocity=10)],
     )
     for _ in range(NUM_EPISODES):
         obs, info = env.reset()

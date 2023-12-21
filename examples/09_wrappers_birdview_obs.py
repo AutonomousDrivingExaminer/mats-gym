@@ -22,23 +22,27 @@ def policy():
     """
     A simple policy that drives the agent forward and turns left or right randomly.
     """
-    return np.array([
-        0.5 + np.random.rand() / 2,  # throttle
-        np.random.rand() - 0.5,  # steer
-        0.0  # brake
-    ])
-
+    return np.array(
+        [
+            0.5 + np.random.rand() / 2,  # throttle
+            np.random.rand() - 0.5,  # steer
+            0.0,  # brake
+        ]
+    )
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s")
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
+    )
     env = mats_gym.scenic_env(
         scenario_specification="scenarios/scenic/carla_challenge_08.scenic",
         scenes_per_scenario=2,
         resample_scenes=False,
         agent_name_prefixes=["adv", "sut"],
         render_mode="human",
-        render_config=renderers.camera_pov(agent="sut")
+        render_config=renderers.camera_pov(agent="sut"),
     )
 
     # Wrap the environment with the BirdViewObservationWrapper.
@@ -60,19 +64,16 @@ def main():
         env=env,
         obs_config={
             "sut": ObservationConfig(
-                as_rgb=True,
-                vehicle_class_prefixes=None,
-                width=84,
-                height=84
+                as_rgb=True, vehicle_class_prefixes=None, width=84, height=84
             ),
             "adv_1": ObservationConfig(
                 as_rgb=True,
                 vehicle_class_prefixes=["sut", "adv"],
                 width=84,
                 height=84,
-                pixels_per_meter=2
+                pixels_per_meter=2,
             ),
-        }
+        },
     )
 
     print(env.observation_space)

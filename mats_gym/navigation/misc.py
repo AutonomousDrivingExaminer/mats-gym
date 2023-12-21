@@ -14,17 +14,21 @@ from typing import List
 import numpy as np
 import carla
 
-def get_surrounding_waypoints(location: carla.Location, map: carla.Map, distance: float, resolution: float = 3.0):
+
+def get_surrounding_waypoints(
+    location: carla.Location, map: carla.Map, distance: float, resolution: float = 3.0
+):
     waypoints = map.generate_waypoints(resolution)
     return [w for w in waypoints if w.transform.location.distance(location) < distance]
 
+
 def draw_waypoints(
-        world: carla.World,
-        waypoints: list[carla.Waypoint | carla.Location],
-        z: float = 0,
-        color: carla.Color = carla.Color(255, 0, 0),
-        life_time: float = 1.0,
-        size=0.3
+    world: carla.World,
+    waypoints: list[carla.Waypoint | carla.Location],
+    z: float = 0,
+    color: carla.Color = carla.Color(255, 0, 0),
+    life_time: float = 1.0,
+    size=0.3,
 ):
     """
     Draw a list of waypoints at a certain height given in z.
@@ -42,11 +46,7 @@ def draw_waypoints(
         angle = math.radians(wpt_t.rotation.yaw)
         end = begin + carla.Location(x=math.cos(angle), y=math.sin(angle))
         world.debug.draw_arrow(
-            begin=begin,
-            end=end,
-            arrow_size=size,
-            color=color,
-            life_time=life_time
+            begin=begin, end=end, arrow_size=size, color=color, life_time=life_time
         )
 
 
@@ -59,12 +59,14 @@ def get_speed(vehicle):
     """
     vel = vehicle.get_velocity()
 
-    return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+    return 3.6 * math.sqrt(vel.x**2 + vel.y**2 + vel.z**2)
+
 
 def get_trafficlight_trigger_location(traffic_light):
     """
     Calculates the yaw of the waypoint that represents the trigger volume of the traffic light
     """
+
     def rotate_point(point, radians):
         """
         rotate a given point by a given angle
@@ -85,7 +87,9 @@ def get_trafficlight_trigger_location(traffic_light):
     return carla.Location(point_location.x, point_location.y, point_location.z)
 
 
-def is_within_distance(target_transform, reference_transform, max_distance, angle_interval=None):
+def is_within_distance(
+    target_transform, reference_transform, max_distance, angle_interval=None
+):
     """
     Check if a location is both within a certain distance from a reference object.
     By using 'angle_interval', the angle between the location and reference transform
@@ -97,10 +101,12 @@ def is_within_distance(target_transform, reference_transform, max_distance, angl
     :param angle_interval: only locations between [min, max] angles will be considered. This isn't checked by default.
     :return: boolean
     """
-    target_vector = np.array([
-        target_transform.location.x - reference_transform.location.x,
-        target_transform.location.y - reference_transform.location.y
-    ])
+    target_vector = np.array(
+        [
+            target_transform.location.x - reference_transform.location.x,
+            target_transform.location.y - reference_transform.location.y,
+        ]
+    )
     norm_target = np.linalg.norm(target_vector)
 
     # If the vector is too short, we can simply stop here
@@ -120,7 +126,11 @@ def is_within_distance(target_transform, reference_transform, max_distance, angl
 
     fwd = reference_transform.get_forward_vector()
     forward_vector = np.array([fwd.x, fwd.y])
-    angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
+    angle = math.degrees(
+        math.acos(
+            np.clip(np.dot(forward_vector, target_vector) / norm_target, -1.0, 1.0)
+        )
+    )
 
     return min_angle < angle < max_angle
 
@@ -134,11 +144,19 @@ def compute_magnitude_angle(target_location, current_location, orientation):
         :param orientation: orientation of the reference object
         :return: a tuple composed by the distance to the object and the angle between both objects
     """
-    target_vector = np.array([target_location.x - current_location.x, target_location.y - current_location.y])
+    target_vector = np.array(
+        [target_location.x - current_location.x, target_location.y - current_location.y]
+    )
     norm_target = np.linalg.norm(target_vector)
 
-    forward_vector = np.array([math.cos(math.radians(orientation)), math.sin(math.radians(orientation))])
-    d_angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
+    forward_vector = np.array(
+        [math.cos(math.radians(orientation)), math.sin(math.radians(orientation))]
+    )
+    d_angle = math.degrees(
+        math.acos(
+            np.clip(np.dot(forward_vector, target_vector) / norm_target, -1.0, 1.0)
+        )
+    )
 
     return (norm_target, d_angle)
 

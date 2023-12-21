@@ -5,7 +5,6 @@ import numpy as np
 
 
 class Renderer(Protocol):
-
     def render(self) -> Union[None, np.ndarray, List[np.ndarray]]:
         ...
 

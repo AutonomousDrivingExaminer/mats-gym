@@ -17,16 +17,20 @@ def policy():
     """
     A simple policy that drives the agent forward and turns left or right randomly.
     """
-    return np.array([
-        0.5 + np.random.rand() / 2,  # throttle
-        np.random.rand() - 0.5,  # steer
-        0.0  # brake
-    ])
+    return np.array(
+        [
+            0.5 + np.random.rand() / 2,  # throttle
+            np.random.rand() - 0.5,  # steer
+            0.0,  # brake
+        ]
+    )
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG,
-                        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s")
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
+    )
 
     # There exists a gymnasium factory with id "ScenicEnv-v0" that can be used to create a ScenicEnv.
     # You can provide either a single scenario or a list of scenarios. Moreover, you can control how many scenes per
@@ -45,15 +49,15 @@ def main():
         render_config=renderers.camera_pov(agent="sut"),
         # See adex_gym.envs.renderers for more render configs.
         params={
-            'MANEUVER_TYPE': ManeuverType.LEFT_TURN.value,
-            'NPC_MANEUVER_CONFLICT_ONLY': True,
-            'NPC_PARAMS': {
-                'ignore_traffic_lights': False,
-                'ignore_vehicles': False,
-                'target_speed': 30
+            "MANEUVER_TYPE": ManeuverType.LEFT_TURN.value,
+            "NPC_MANEUVER_CONFLICT_ONLY": True,
+            "NPC_PARAMS": {
+                "ignore_traffic_lights": False,
+                "ignore_vehicles": False,
+                "target_speed": 30,
             },
-            'NUM_NPCS': 1
-        }
+            "NUM_NPCS": 1,
+        },
     )
 
     for _ in range(5):

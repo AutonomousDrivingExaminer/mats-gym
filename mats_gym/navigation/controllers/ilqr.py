@@ -17,8 +17,8 @@ E_PSI = 5
 A = 0
 DELTA = 1
 
-class NonlinearMPC(Controller):
 
+class NonlinearMPC(Controller):
     @dataclass
     class Parameters:
         horizon: int = 10
@@ -26,8 +26,7 @@ class NonlinearMPC(Controller):
         w_cte: float = 50.0
         w_eth: float = 100.0
 
-
-    def __init__(self, vehicle: carla.Vehicle, params = Parameters()) -> None:
+    def __init__(self, vehicle: carla.Vehicle, params=Parameters()) -> None:
         self._vehicle = vehicle
         self._target_speed = 0.0
         self._target_waypoint = None
@@ -48,31 +47,27 @@ class NonlinearMPC(Controller):
         e_psi_dot = psi_dot - atan(x[CTE])
         return vertcat(x_dot, y_dot, psi_dot, v_dot, cte_dot, e_psi_dot)
 
-
-
     def _get_state(self) -> np.ndarray:
         location = self._vehicle.get_location()
         rotation = self._vehicle.get_transform().rotation
-        return np.array([
-            location.x,
-            location.y,
-            rotation.yaw,
-            get_speed(self._vehicle) / 3.6,
-
-        ])
-
-
-
+        return np.array(
+            [
+                location.x,
+                location.y,
+                rotation.yaw,
+                get_speed(self._vehicle) / 3.6,
+            ]
+        )
 
     def update(self, dt: float) -> T:
         opti = Opti()
         T = self._params.horizon
 
-
         x = opti.variable(6, T)
         u = opti.variable(2, T)
-        for t in range(T-1):
-            opti.subject_to(x[:, t+1] == self._dynamics(x[:, t], u[:, t], self._params.dt))
-
+        for t in range(T - 1):
+            opti.subject_to(
+                x[:, t + 1] == self._dynamics(x[:, t], u[:, t], self._params.dt)
+            )
 
         return super().update(dt)

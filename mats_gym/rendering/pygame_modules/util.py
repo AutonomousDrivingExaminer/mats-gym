@@ -4,7 +4,6 @@ import carla
 
 
 class Util(object):
-
     @staticmethod
     def blits(destination_surface, source_surfaces, rect=None, blend_mode=0):
         """Function that renders the all the source surfaces in a destination source"""
@@ -20,11 +19,13 @@ class Util(object):
     def get_bounding_box(actor):
         """Gets the bounding box corners of an actor in world space"""
         bb = actor.trigger_volume.extent
-        corners = [carla.Location(x=-bb.x, y=-bb.y),
-                   carla.Location(x=bb.x, y=-bb.y),
-                   carla.Location(x=bb.x, y=bb.y),
-                   carla.Location(x=-bb.x, y=bb.y),
-                   carla.Location(x=-bb.x, y=-bb.y)]
+        corners = [
+            carla.Location(x=-bb.x, y=-bb.y),
+            carla.Location(x=bb.x, y=-bb.y),
+            carla.Location(x=bb.x, y=bb.y),
+            carla.Location(x=-bb.x, y=bb.y),
+            carla.Location(x=-bb.x, y=-bb.y),
+        ]
         corners = [x + actor.trigger_volume.location for x in corners]
         t = actor.get_transform()
         t.transform(corners)

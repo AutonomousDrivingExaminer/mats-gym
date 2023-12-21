@@ -1,16 +1,15 @@
 from __future__ import annotations
-import gymnasium.spaces
 
-import numpy as np
 from typing import Any
 
 import carla
 import gymnasium
-from gymnasium import Env
-from gymnasium.core import ObsType, WrapperObsType, ActType
+import gymnasium.spaces
+import numpy as np
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 from mats_gym.envs.scenario_env_wrapper import BaseScenarioEnvWrapper
+
 
 class RoadObservationWrapper(BaseScenarioEnvWrapper):
     """
@@ -19,26 +18,38 @@ class RoadObservationWrapper(BaseScenarioEnvWrapper):
     - Identification of the current lane (road, section, lane)
     - Lane type and width
     - Lane change possibility
-
     """
 
     def __init__(self, env: BaseScenarioEnvWrapper):
+        """
+        @param env: The environment to wrap.
+        """
         super().__init__(env)
-        self._lane_type_values = {v: i for i, v in enumerate(sorted(carla.LaneType.values))}
+        self._lane_type_values = {
+            v: i for i, v in enumerate(sorted(carla.LaneType.values))
+        }
         self._lane_change = {
             carla.LaneChange.Both: 0,
             carla.LaneChange.Left: 1,
             carla.LaneChange.Right: 2,
-            carla.LaneChange.NONE: 3
+            carla.LaneChange.NONE: 3,
         }
 
     def observation_space(self, agent: str) -> gymnasium.spaces.Dict:
         obs_space: gymnasium.spaces.Dict = self.env.observation_space(agent)
-        obs_space["lane_id"] = gymnasium.spaces.Box(low=-10, high=10, shape=(1,), dtype=np.int32)
-        obs_space["road_id"] = gymnasium.spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.int32)
-        obs_space["section_id"] = gymnasium.spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.int32)
+        obs_space["lane_id"] = gymnasium.spaces.Box(
+            low=-10, high=10, shape=(1,), dtype=np.int32
+        )
+        obs_space["road_id"] = gymnasium.spaces.Box(
+            low=0, high=np.inf, shape=(1,), dtype=np.int32
+        )
+        obs_space["section_id"] = gymnasium.spaces.Box(
+            low=0, high=np.inf, shape=(1,), dtype=np.int32
+        )
         obs_space["on_junction"] = gymnasium.spaces.Discrete(2)
-        obs_space["lane_width"] = gymnasium.spaces.Box(low=0, high=np.inf, shape=(1,), dtype=np.float32)
+        obs_space["lane_width"] = gymnasium.spaces.Box(
+            low=0, high=np.inf, shape=(1,), dtype=np.float32
+        )
         obs_space["lane_type"] = gymnasium.spaces.Discrete(len(self._lane_type_values))
         obs_space["lane_change"] = gymnasium.spaces.Discrete(len(self._lane_change))
         return obs_space
@@ -56,11 +67,17 @@ class RoadObservationWrapper(BaseScenarioEnvWrapper):
             observation[agent]["lane_type"] = self._lane_type_values[waypoint.lane_type]
             observation[agent]["lane_change"] = self._lane_change[waypoint.lane_change]
         return observation
-    
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[dict, dict[Any, dict]]:
+
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict, dict[Any, dict]]:
         obs, info = super().reset(seed, options)
         return self.observation(obs), info
 
-    def step(self, actions: dict) -> tuple[dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]]:
+    def step(
+        self, actions: dict
+    ) -> tuple[
+        dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]
+    ]:
         obs, *rest = super().step(actions)
         return self.observation(obs), *rest

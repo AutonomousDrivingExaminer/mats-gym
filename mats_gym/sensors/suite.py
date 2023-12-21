@@ -8,8 +8,14 @@ from gymnasium import spaces
 from leaderboard.envs.sensor_interface import SensorInterface
 
 
-from mats_gym.sensors.builders import SpeedoMeterBuilder, CameraSensorBuilder, LidarSensorBuilder, GnssSensorBuilder, \
-    IMUSensorBuilder, SensorBuilder
+from mats_gym.sensors.builders import (
+    SpeedoMeterBuilder,
+    CameraSensorBuilder,
+    LidarSensorBuilder,
+    GnssSensorBuilder,
+    IMUSensorBuilder,
+    SensorBuilder,
+)
 from mats_gym.sensors.callbacks import SensorCallBack
 
 
@@ -21,7 +27,9 @@ class SensorSuite:
     def __init__(self, sensor_specs: list[dict[str, Any]]):
         self._vehicle = None
         self._specs = sensor_specs
-        self._sensor_builders = {spec["id"]: self._make_sensor_builder(spec) for spec in sensor_specs}
+        self._sensor_builders = {
+            spec["id"]: self._make_sensor_builder(spec) for spec in sensor_specs
+        }
         self._carla_sensors = []
         self._sensor_interface = SensorInterface()
 
@@ -49,7 +57,10 @@ class SensorSuite:
     @property
     def observation_space(self) -> spaces.Dict:
         return spaces.Dict(
-            {id: sensor.observation_space for id, sensor in self._sensor_builders.items()}
+            {
+                id: sensor.observation_space
+                for id, sensor in self._sensor_builders.items()
+            }
         )
 
     def _make_callback(self, type: str) -> SensorCallBack:
@@ -62,7 +73,9 @@ class SensorSuite:
         """
         for id, builder in self._sensor_builders.items():
             logging.debug(f"Spawning sensor {id} of type {builder.spec['type']}.")
-            sensor = builder.configure_sensor(vehicle=vehicle, sensor_interface=self._sensor_interface)
+            sensor = builder.configure_sensor(
+                vehicle=vehicle, sensor_interface=self._sensor_interface
+            )
             self._carla_sensors.append(sensor)
 
     def cleanup(self):

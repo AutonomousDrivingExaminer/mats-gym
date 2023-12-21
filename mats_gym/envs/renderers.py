@@ -10,16 +10,19 @@ from mats_gym.rendering.stacked import StackedRenderer
 
 @dataclass
 class RenderConfig:
-    agent: str = "sut"
-    renderer: str = "camera_pov"
-    kwargs: dict = None
+    agent: str = "sut"  # The agent to focus on.
+    renderer: str = "camera_pov"  # The type of renderer to create. One of ['camera_top', 'camera_pov', 'bird_view'].
+    kwargs: dict = None  # Additional arguments for the renderer.
 
     def __init__(self, agent: str = "sut", renderer: str = "camera_pov", **kwargs):
         self.kwargs = kwargs
         self.agent = agent
         self.renderer = renderer
 
-def stacked(top_agent: str = "sut", bottom_agents: tuple[str, str] = ("adv_1", "adv_2")):
+
+def stacked(
+    top_agent: str = "sut", bottom_agents: tuple[str, str] = ("adv_1", "adv_2")
+):
     """
     Returns a stacked renderer with a bird view on top and two camera povs on the bottom.
     :param top_agent: The agent to focus on in the top renderer.
@@ -32,9 +35,10 @@ def stacked(top_agent: str = "sut", bottom_agents: tuple[str, str] = ("adv_1", "
         renderers=[
             bird_view(top_agent, width=1440, height=480),
             camera_pov(bottom_agents[0], display_actor_id=True, width=720, height=480),
-            camera_pov(bottom_agents[1], display_actor_id=True, width=720, height=480)
-        ]
+            camera_pov(bottom_agents[1], display_actor_id=True, width=720, height=480),
+        ],
     )
+
 
 def camera_pov(agent: str = "sut", **kwargs):
     """
@@ -44,6 +48,7 @@ def camera_pov(agent: str = "sut", **kwargs):
     """
     return RenderConfig(renderer="camera_pov", agent=agent, **kwargs)
 
+
 def camera_top(agent: str = "sut", **kwargs):
     """
     Returns a camera top rendering configuration.
@@ -51,6 +56,7 @@ def camera_top(agent: str = "sut", **kwargs):
     :return: The corresponding rendering configuration.
     """
     return RenderConfig(renderer="camera_top", agent=agent, **kwargs)
+
 
 def bird_view(agent: str = "sut", **kwargs):
     """
@@ -60,15 +66,13 @@ def bird_view(agent: str = "sut", **kwargs):
     """
     return RenderConfig(renderer="bird_view", agent=agent, **kwargs)
 
-def make_renderer(
-    type: str, mode: str, focused_actor: str, **kwargs
-) -> Renderer:
+
+def make_renderer(type: str, mode: str, focused_actor: str, **kwargs) -> Renderer:
     """
     Factory method for creating renderers.
     :param type: The type of renderer to create. One of ['camera_top', 'camera_pov', 'bird_view'].
     :param mode: The mode of the renderer. One of ['human', 'rgb_array'].
     :param focused_actor: The actor id to focus on.
-    :param client: The carla client.
     :return: The renderer.
     """
     if type == "camera_top":
@@ -88,9 +92,7 @@ def make_renderer(
             **kwargs,
         )
     elif type == "bird_view":
-        renderer = BirdViewRenderer(
-            render_mode=mode, actor_id=focused_actor, **kwargs
-        )
+        renderer = BirdViewRenderer(render_mode=mode, actor_id=focused_actor, **kwargs)
     elif type == "stacked":
         render_configs = kwargs.get("renderers")
         renderer = StackedRenderer(

@@ -17,7 +17,16 @@ This example shows how to use the BaseScenarioEnv class directly by passing a sc
 NUM_EPISODES = 3
 SENSOR_SPECS = [
     {"id": "rgb-center", "type": "sensor.camera.rgb", "x": 0.7, "y": 0.0, "z": 1.60},
-    {"id": "lidar", "type": "sensor.lidar.ray_cast", "range": 100, "channels": 32, "x": 0.7, "y": -0.4, "z": 1.60, "yaw": -45.0},
+    {
+        "id": "lidar",
+        "type": "sensor.lidar.ray_cast",
+        "range": 100,
+        "channels": 32,
+        "x": 0.7,
+        "y": -0.4,
+        "z": 1.60,
+        "yaw": -45.0,
+    },
     {"id": "gps", "type": "sensor.other.gnss", "x": 0.7, "y": -0.4, "z": 1.60},
 ]
 
@@ -26,11 +35,13 @@ def policy():
     """
     A simple policy that drives the agent forward and turns left or right randomly.
     """
-    return np.array([
-        0.5 + np.random.rand() / 2,  # throttle
-        np.random.rand() - 0.5,  # steer
-        0.0  # brake
-    ])
+    return np.array(
+        [
+            0.5 + np.random.rand() / 2,  # throttle
+            np.random.rand() - 0.5,  # steer
+            0.0,  # brake
+        ]
+    )
 
 
 def scenario_fn(client: carla.Client, config: ScenarioConfiguration):
@@ -48,15 +59,24 @@ def scenario_fn(client: carla.Client, config: ScenarioConfiguration):
             spawn_point=vehicle.transform,
             rolename=vehicle.rolename,
             color=vehicle.color,
-            actor_category=vehicle.category
+            actor_category=vehicle.category,
         )
         ego_vehicles.append(actor)
-    scenario = CutIn(world=world, ego_vehicles=ego_vehicles, config=config, debug_mode=False, timeout=10)
+    scenario = CutIn(
+        world=world,
+        ego_vehicles=ego_vehicles,
+        config=config,
+        debug_mode=False,
+        timeout=10,
+    )
     return scenario
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s")
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
+    )
 
     # The base environment can be used directly by providing a scenario factory function. This function takes no
     # arguments and returns a scenario instance. The scenario instance must be a subclass of BaseScenario. Furthermore,
@@ -70,14 +90,16 @@ def main():
 
     configs = ScenarioConfigurationParser.parse_scenario_configuration(
         scenario_name="CutInFrom_left_Lane",
-        additional_config_file_name="scenarios/scenario-runner/CutIn.xml"
+        additional_config_file_name="scenarios/scenario-runner/CutIn.xml",
     )
     config = configs[0]
     env = mats_gym.raw_env(
         config=config,  # The scenario configuration.
         scenario_fn=scenario_fn,  # A function that takes no arguments and returns a scenario instance.
         render_mode="human",  # The render mode. Can be "human", "rgb_array", "rgb_array_list".
-        render_config=renderers.camera_pov(agent="scenario"),  # See adex_gym.envs.renderers for more render configs.
+        render_config=renderers.camera_pov(
+            agent="scenario"
+        ),  # See adex_gym.envs.renderers for more render configs.
         sensor_specs={"hero": SENSOR_SPECS},  # sensor specs for each agent
     )
 

@@ -7,8 +7,9 @@ from srunner.tools.route_manipulation import interpolate_trajectory
 
 
 class AutopilotAgent(AutonomousAgent):
-
-    def __init__(self, role_name: str, carla_host, carla_port, debug=False, opt_dict={}):
+    def __init__(
+        self, role_name: str, carla_host, carla_port, debug=False, opt_dict={}
+    ):
         self.track = Track.SENSORS
         #  current global plans to reach a destination
         self._global_plan = None
@@ -27,7 +28,11 @@ class AutopilotAgent(AutonomousAgent):
 
     def setup(self, path_to_conf_file, route=None, trajectory=None):
         actors = CarlaDataProvider.get_world().get_actors()
-        vehicle = [actor for actor in actors if actor.attributes.get('role_name') == self.role_name][0]
+        vehicle = [
+            actor
+            for actor in actors
+            if actor.attributes.get("role_name") == self.role_name
+        ][0]
 
         if vehicle:
             self._agent = BasicAgent(vehicle, target_speed=50, opt_dict=self._opt_dict)
@@ -39,7 +44,9 @@ class AutopilotAgent(AutonomousAgent):
                 wp = (map.get_waypoint(loc), option)
                 plan.append(wp)
                 if self._debug:
-                    world.debug.draw_point(loc, size=0.1, color=carla.Color(0, 255, 0), life_time=120.0)
+                    world.debug.draw_point(
+                        loc, size=0.1, color=carla.Color(0, 255, 0), life_time=120.0
+                    )
             self._agent.set_global_plan(plan)
 
         elif self._agent and trajectory:
@@ -52,7 +59,9 @@ class AutopilotAgent(AutonomousAgent):
                     wp = item
 
                 if self._debug:
-                    world.debug.draw_point(wp, size=0.2, color=carla.Color(255, 0, 0), life_time=120.0)
+                    world.debug.draw_point(
+                        wp, size=0.2, color=carla.Color(255, 0, 0), life_time=120.0
+                    )
 
                 waypoints.append(wp)
 
@@ -62,10 +71,14 @@ class AutopilotAgent(AutonomousAgent):
                 wp = (map.get_waypoint(tf.location), option)
                 plan.append(wp)
                 if self._debug:
-                    world.debug.draw_point(tf.location, size=0.1, color=carla.Color(0, 255, 0), life_time=120.0)
+                    world.debug.draw_point(
+                        tf.location,
+                        size=0.1,
+                        color=carla.Color(0, 255, 0),
+                        life_time=120.0,
+                    )
 
             self._agent.set_global_plan(plan)
-
 
     def sensors(self):
         sensors = [

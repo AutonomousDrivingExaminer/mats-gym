@@ -26,6 +26,7 @@ from pygame.locals import K_w
 MAP_DEFAULT_SCALE = 0.1
 HERO_DEFAULT_SCALE = 1.0
 
+
 class InputControl(object):
     """Class that handles input received such as keyboard and mouse."""
 
@@ -67,7 +68,9 @@ class InputControl(object):
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     pygame.quit()
-                elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
+                elif event.key == K_h or (
+                    event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT
+                ):
                     self._hud.help.toggle()
                 elif event.key == K_TAB:
                     # Toggle between hero and map mode
@@ -75,14 +78,14 @@ class InputControl(object):
                         self._world.select_hero_actor()
                         self.wheel_offset = HERO_DEFAULT_SCALE
                         self.control = carla.VehicleControl()
-                        self._hud.notification('Hero Mode')
+                        self._hud.notification("Hero Mode")
                     else:
                         self.wheel_offset = MAP_DEFAULT_SCALE
                         self.mouse_offset = [0, 0]
                         self.mouse_pos = [0, 0]
                         self._world.scale_offset = [0, 0]
                         self._world.hero_actor = None
-                        self._hud.notification('Map Mode')
+                        self._hud.notification("Map Mode")
                 elif event.key == K_F1:
                     self._hud.show_info = not self._hud.show_info
                 elif event.key == K_i:
@@ -91,10 +94,18 @@ class InputControl(object):
                     if event.key == K_q:
                         self.control.gear = 1 if self.control.reverse else -1
                     elif event.key == K_m:
-                        self.control.manual_gear_shift = not self.control.manual_gear_shift
+                        self.control.manual_gear_shift = (
+                            not self.control.manual_gear_shift
+                        )
                         self.control.gear = self._world.hero_actor.get_control().gear
-                        self._hud.notification('%s Transmission' % (
-                            'Manual' if self.control.manual_gear_shift else 'Automatic'))
+                        self._hud.notification(
+                            "%s Transmission"
+                            % (
+                                "Manual"
+                                if self.control.manual_gear_shift
+                                else "Automatic"
+                            )
+                        )
                     elif self.control.manual_gear_shift and event.key == K_COMMA:
                         self.control.gear = max(-1, self.control.gear - 1)
                     elif self.control.manual_gear_shift and event.key == K_PERIOD:
@@ -103,8 +114,13 @@ class InputControl(object):
                         # Toggle autopilot
                         if self._world.hero_actor is not None:
                             self._autopilot_enabled = not self._autopilot_enabled
-                            self._world.hero_actor.set_autopilot(self._autopilot_enabled)
-                            self._hud.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+                            self._world.hero_actor.set_autopilot(
+                                self._autopilot_enabled
+                            )
+                            self._hud.notification(
+                                "Autopilot %s"
+                                % ("On" if self._autopilot_enabled else "Off")
+                            )
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Handle mouse wheel for zooming in and out
                 if event.button == 4:
@@ -148,7 +164,7 @@ class InputControl(object):
             if isinstance(self.control, carla.VehicleControl):
                 self._parse_keys(clock.get_time())
                 self.control.reverse = self.control.gear < 0
-            if (self._world.hero_actor is not None):
+            if self._world.hero_actor is not None:
                 self._world.hero_actor.apply_control(self.control)
 
     @staticmethod

@@ -6,8 +6,8 @@ import numpy as np
 from mats_gym.navigation.controllers.controller import Controller, T
 from mats_gym.navigation.misc import get_speed
 
-class PIDController(Controller):
 
+class PIDController(Controller):
     def __init__(self, kp: float = 1.0, ki: float = 0.0, kd: float = 0.0):
         self.kp = kp
         self.ki = ki
@@ -18,18 +18,19 @@ class PIDController(Controller):
         self.ki = ki or self.ki
         self.kd = kd or self.kd
 
+
 class PIDLongitudinalController(PIDController[float]):
     """
     PIDLongitudinalController implements longitudinal control using a PID.
     """
 
     def __init__(
-            self,
-            vehicle: carla.Vehicle,
-            kp: float = 1.0,
-            ki: float = 0.0,
-            kd: float = 0.0,
-            dt: float = 0.03
+        self,
+        vehicle: carla.Vehicle,
+        kp: float = 1.0,
+        ki: float = 0.0,
+        kd: float = 0.0,
+        dt: float = 0.03,
     ):
         """
         Constructor method.
@@ -60,7 +61,9 @@ class PIDLongitudinalController(PIDController[float]):
             _de = 0.0
             _ie = 0.0
 
-        return np.clip((self.kp * error) + (self.kd * _de) + (self.ki * _ie), -1.0, 1.0).item()
+        return np.clip(
+            (self.kp * error) + (self.kd * _de) + (self.ki * _ie), -1.0, 1.0
+        ).item()
 
     def run_step(self, target_speed, debug=False):
         """

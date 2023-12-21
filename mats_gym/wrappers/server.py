@@ -10,48 +10,56 @@ from mats_gym.servers.server import CarlaServer
 
 
 class ServerWrapper(BaseScenarioEnvWrapper):
+    """
+    A wrapper that handles the initialization and termination of a Carla simulation server.
+    """
+
     def __init__(
-            self,
-            env: BaseScenarioEnvWrapper,
-            world_port: int,
-            type: str = "docker",
-            headless: bool = True,
-            sensor_port: None | int = None,
-            control_port: None | int = None,
-            traffic_manager_port: None | int = None,
-            wait_time: float = 5.0,
-            server_kwargs: None | dict = None,
-            gpus=None,
+        self,
+        env: BaseScenarioEnvWrapper,
+        world_port: int,
+        type: str = "docker",
+        headless: bool = True,
+        sensor_port: None | int = None,
+        control_port: None | int = None,
+        traffic_manager_port: None | int = None,
+        wait_time: float = 5.0,
+        server_kwargs: None | dict = None,
     ) -> None:
+        """
+        @param env: The environment to wrap.
+        @param world_port: The world port of the server.
+        @param type: The type of server to use. Currently only 'docker' is supported. Needs docker to be installed.
+        @param headless: Whether to run the server in headless mode (no CARLA window).
+        @param sensor_port: The sensor port of the server. Defaults to world_port + 1.
+        @param control_port: The control port of the server. Defaults to world_port + 2.
+        @param traffic_manager_port: The traffic manager port of the server. Defaults to None.
+        @param wait_time: The time to wait after starting the server before connecting to it.
+        @param server_kwargs: Additional keyword arguments to pass to the server constructor.
+        """
         super().__init__(env)
-        if gpus is None:
-            gpus = ["all"]
         self._world_port = world_port
         self._traffic_manager_port = traffic_manager_port
         self._wait_time = wait_time
         self._server = self._make_server(
-            type,
+            type=type,
             world_port=world_port,
             sensor_port=sensor_port,
             control_port=control_port,
             headless=headless,
-            gpus=gpus,
-            **(server_kwargs or {})
+            **(server_kwargs or {}),
         )
         time.sleep(wait_time)
 
     def _make_server(
-            self,
-            type: str,
-            world_port: int,
-            sensor_port: int = None,
-            control_port: int = None,
-            headless: bool = True,
-            gpus=None,
-            **kwargs
+        self,
+        type: str,
+        world_port: int,
+        sensor_port: int = None,
+        control_port: int = None,
+        headless: bool = True,
+        **kwargs,
     ) -> CarlaServer:
-        if gpus is None:
-            gpus = ["all"]
         self._client = None
         if type == "docker":
             return DockerCarlaServer(
@@ -60,8 +68,7 @@ class ServerWrapper(BaseScenarioEnvWrapper):
                 sensor_port=sensor_port,
                 control_port=control_port,
                 headless=headless,
-                gpus=gpus,
-                **kwargs
+                **kwargs,
             )
         else:
             raise ValueError(

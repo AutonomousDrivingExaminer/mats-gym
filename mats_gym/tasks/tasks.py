@@ -21,6 +21,7 @@ class Task(ABC):
     def reset(self) -> None:
         pass
 
+
 class TaskCombination(Task):
     def __init__(
         self,
@@ -47,7 +48,5 @@ class TaskCombination(Task):
         )
 
     def terminated(self, obs: dict, action: dict, info: dict) -> bool:
-        terminated = [
-            task.terminated(obs, action, info) for task in self._tasks
-        ]
+        terminated = [task.terminated(obs, action, info) for task in self._tasks]
         return self._termination_fn(terminated)

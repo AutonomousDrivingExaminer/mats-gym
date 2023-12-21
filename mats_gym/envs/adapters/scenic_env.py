@@ -22,22 +22,22 @@ from mats_gym.scenarios.scenic_scenario import (
 
 class ScenicEnv(BaseScenarioEnvWrapper):
     def __init__(
-            self,
-            client: carla.Client = None,
-            scenario_specification: str | list[str] = None,
-            scenes_per_scenario: int = 1,
-            scenes: list[Scene] | Scene = None,
-            agent_name_prefixes: str | list[str] = None,
-            seed: int | None = None,
-            resample_scenes: bool = False,
-            traffic_manager_port: int = 8000,
-            max_time_steps: int | None = None,
-            timestep: float = 0.05,
-            render_mode: str = None,
-            render_config: RenderConfig = RenderConfig(),
-            debug_mode=False,
-            params: dict | list[dict] = None,
-            **kwargs,
+        self,
+        client: carla.Client = None,
+        scenario_specification: str | list[str] = None,
+        scenes_per_scenario: int = 1,
+        scenes: list[Scene] | Scene = None,
+        agent_name_prefixes: str | list[str] = None,
+        seed: int | None = None,
+        resample_scenes: bool = False,
+        traffic_manager_port: int = 8000,
+        max_time_steps: int | None = None,
+        timestep: float = 0.05,
+        render_mode: str = None,
+        render_config: RenderConfig = RenderConfig(),
+        debug_mode=False,
+        params: dict | list[dict] = None,
+        **kwargs,
     ) -> None:
         assert (
             scenes is not None or scenario_specification is not None
@@ -73,7 +73,9 @@ class ScenicEnv(BaseScenarioEnvWrapper):
         if scenes is None:
             logging.debug(f"Sampling scenes from scenario specification.")
             self._configs = self._sample_configs(
-                scenarios=self._scenarios, scenes_per_scenario=self._scenes_per_scenario, params=params
+                scenarios=self._scenarios,
+                scenes_per_scenario=self._scenes_per_scenario,
+                params=params,
             )
         else:
             if isinstance(scenes, Scene):
@@ -95,7 +97,7 @@ class ScenicEnv(BaseScenarioEnvWrapper):
         super().__init__(env)
 
     def _sample_configs(
-        self, scenarios: list[str], scenes_per_scenario: int, params:list[dict] = None
+        self, scenarios: list[str], scenes_per_scenario: int, params: list[dict] = None
     ) -> list[ScenicScenarioConfiguration]:
         configs = []
         params = params or {}
@@ -105,8 +107,9 @@ class ScenicEnv(BaseScenarioEnvWrapper):
             logging.debug(
                 f"Number of scenes to sample for scenario {s}: {scenes_per_scenario}."
             )
-            scenario = scenic.scenarioFromFile(s, params=param,
-                                               model="scenic.simulators.carla.model")
+            scenario = scenic.scenarioFromFile(
+                s, params=param, model="scenic.simulators.carla.model"
+            )
             for i in range(scenes_per_scenario):
                 scene = scenario.generate(maxIterations=10000)[0]
                 logging.debug(f"Building scene {i + 1}/{scenes_per_scenario} for {s}.")
@@ -182,8 +185,9 @@ class ScenicEnv(BaseScenarioEnvWrapper):
             if isinstance(options["scene"], Scene):
                 config = self._build_config(options["scene"])
             elif isinstance(options["scene"], dict):
-                assert "code" in options["scene"] \
-                       and "binary" in options["scene"], "Scene must contain code and binary."
+                assert (
+                    "code" in options["scene"] and "binary" in options["scene"]
+                ), "Scene must contain code and binary."
                 params = options["scene"].get("params", {})
                 code = options["scene"]["code"]
                 scenario: Scenario = scenic.scenarioFromString(code, params=params)

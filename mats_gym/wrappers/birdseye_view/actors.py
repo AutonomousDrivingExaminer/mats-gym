@@ -15,14 +15,14 @@ class SegregatedActors(NamedTuple):
 
 
 def segregate_by_type(
-        actors: List[carla.Actor],
-        vehicle_classification_fns: List[VehicleClassificationFn] = None) \
-        -> SegregatedActors:
+    actors: List[carla.Actor],
+    vehicle_classification_fns: List[VehicleClassificationFn] = None,
+) -> SegregatedActors:
     if vehicle_classification_fns is None:
         vehicle_classification_fns = []
 
     # Unclassified vehicles are put in the first class
-    vehicle_classes = [[] for _ in range(len(vehicle_classification_fns)+1)]
+    vehicle_classes = [[] for _ in range(len(vehicle_classification_fns) + 1)]
     traffic_lights = []
     pedestrians = []
     for actor in actors:
@@ -37,14 +37,14 @@ def segregate_by_type(
             for i, fn in enumerate(vehicle_classification_fns):
                 if fn(actor):
                     in_at_least_one_class = True
-                    vehicle_classes[i+1].append(actor)
+                    vehicle_classes[i + 1].append(actor)
             if not in_at_least_one_class:
                 vehicle_classes[0].append(actor)
 
     return SegregatedActors(
         vehicle_classes=vehicle_classes,
         pedestrians=pedestrians,
-        traffic_lights=traffic_lights
+        traffic_lights=traffic_lights,
     )
 
 

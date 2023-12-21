@@ -17,8 +17,15 @@ from mats_gym.wrappers.birdseye_view import mask, actors
 from mats_gym.wrappers.birdseye_view import cache
 from mats_gym.wrappers.birdseye_view.actors import SegregatedActors
 from mats_gym.wrappers.birdseye_view.colors import RGB
-from mats_gym.wrappers.birdseye_view.mask import Dimensions, PixelDimensions, MapMaskGenerator, Coord, \
-    CroppingRect, COLOR_ON, RenderingWindow
+from mats_gym.wrappers.birdseye_view.mask import (
+    Dimensions,
+    PixelDimensions,
+    MapMaskGenerator,
+    Coord,
+    CroppingRect,
+    COLOR_ON,
+    RenderingWindow,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,8 +63,6 @@ class BirdViewMasks(IntEnum):
     @staticmethod
     def bottom_to_top() -> List[int]:
         return list(reversed(BirdViewMasks.top_to_bottom()))
-
-
 
 
 def rotate(image, angle, center=None, scale=1.0):
@@ -119,7 +124,7 @@ class BirdViewProducer:
         render_lanes_on_junctions: bool,
         vehicle_class_classification: List[actors.VehicleClassificationFn] = None,
         pixels_per_meter: int = 4,
-        crop_type: BirdViewCropType = BirdViewCropType.FRONT_AND_REAR_AREA
+        crop_type: BirdViewCropType = BirdViewCropType.FRONT_AND_REAR_AREA,
     ) -> None:
         self.client = client
         self.target_size = target_size
@@ -129,7 +134,9 @@ class BirdViewProducer:
         if self._vehicle_class_classification is None:
             self.num_layers = len(BirdViewMasks) + 1
         else:
-            self.num_layers = len(BirdViewMasks) + len(self._vehicle_class_classification)
+            self.num_layers = len(BirdViewMasks) + len(
+                self._vehicle_class_classification
+            )
 
         if crop_type is BirdViewCropType.FRONT_AND_REAR_AREA:
             rendering_square_size = round(
@@ -194,7 +201,9 @@ class BirdViewProducer:
         os.makedirs(os.path.dirname(cache_dir / cache_filename), exist_ok=True)
         return str(cache_dir / cache_filename)
 
-    def produce(self, agent_vehicle: carla.Actor, route: list[carla.Location] = None) -> BirdView:
+    def produce(
+        self, agent_vehicle: carla.Actor, route: list[carla.Location] = None
+    ) -> BirdView:
         all_actors = actors.query_all(world=self._world)
         segregated_actors = actors.segregate_by_type(
             actors=all_actors,
@@ -238,21 +247,23 @@ class BirdViewProducer:
         self.masks_generator.enable_local_rendering_mode(rendering_window)
         masks = self._render_actors_masks(
             agent_vehicle=agent_vehicle,
-             segregated_actors=segregated_actors, 
-             masks=masks,
-             route=route or [],     
+            segregated_actors=segregated_actors,
+            masks=masks,
+            route=route or [],
         )
         cropped_masks = self.apply_agent_following_transformation_to_masks(
             agent_vehicle, masks
         )
         ordered_indices = [mask.value for mask in BirdViewMasks.top_to_bottom()]
-        ordered_indices = ordered_indices + [i for i in range(len(BirdViewMasks), self.num_layers)]
+        ordered_indices = ordered_indices + [
+            i for i in range(len(BirdViewMasks), self.num_layers)
+        ]
         return cropped_masks[:, :, ordered_indices]
 
     @staticmethod
     def as_rgb(birdview: BirdView) -> RgbCanvas:
         h, w, d = birdview.shape
-        #assert d == len(BirdViewMasks)
+        # assert d == len(BirdViewMasks)
         rgb_canvas = np.zeros(shape=(h, w, 3), dtype=np.uint8)
         nonzero_indices = lambda arr: arr == COLOR_ON
         num_layers = d
@@ -267,7 +278,7 @@ class BirdViewProducer:
             BirdViewMasks.LANES: RGB.WHITE,
             BirdViewMasks.ROAD: RGB.DIM_GRAY,
             BirdViewMasks.ROUTE: RGB.WHITE,
-            BirdViewMasks.VEHICLES: RGB.SKY_BLUE
+            BirdViewMasks.VEHICLES: RGB.SKY_BLUE,
         }
 
         vehicle_class_colors = [
@@ -275,7 +286,7 @@ class BirdViewProducer:
             RGB.RED,
             RGB.BLUE,
             RGB.YELLOW,
-            *[RGB.DARK_GRAY for _ in range(15)]
+            *[RGB.DARK_GRAY for _ in range(15)],
         ]
 
         for i in range(num_layers):
@@ -317,7 +328,9 @@ class BirdViewProducer:
         )
 
         for i, vehicle_class in enumerate(segregated_actors.vehicle_classes):
-            masks[len(BirdViewMasks) + i - 1] = self.masks_generator.vehicles_mask(vehicle_class)
+            masks[len(BirdViewMasks) + i - 1] = self.masks_generator.vehicles_mask(
+                vehicle_class
+            )
 
         return masks
 

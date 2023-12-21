@@ -11,7 +11,7 @@ class RouteFollowingTask(Task):
     """
     A task that rewards the agent for making progress along its route.
     Terminates when the agent reaches the end of its route. At each timestep,
-    the reward is the progress (between 0 and 1) made along the route since the 
+    the reward is the progress (between 0 and 1) made along the route since the
     last timestep.
     Note that this task requires the scenario to monitor the route completion events
     and add them to the agent info.
@@ -71,7 +71,7 @@ class InfractionAvoidanceTask(Task):
         agent: str,
         infractions: Collection[str] = None,
         penalties: dict[str, float] | float = 1.0,
-        terminate_on_infraction: set[str] | bool = False
+        terminate_on_infraction: set[str] | bool = False,
     ):
         """Constructor.
 
@@ -95,7 +95,7 @@ class InfractionAvoidanceTask(Task):
                 TrafficEventType.STOP_INFRACTION.name,
                 TrafficEventType.TRAFFIC_LIGHT_INFRACTION.name,
                 TrafficEventType.VEHICLE_BLOCKED.name,
-                TrafficEventType.WRONG_WAY_INFRACTION.name
+                TrafficEventType.WRONG_WAY_INFRACTION.name,
             ]
         infractions = set(infractions)
 

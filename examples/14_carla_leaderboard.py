@@ -6,7 +6,9 @@ import os
 import carla
 import numpy as np
 from srunner.autoagents.autonomous_agent import AutonomousAgent
-from srunner.scenarioconfigs.route_scenario_configuration import RouteScenarioConfiguration
+from srunner.scenarioconfigs.route_scenario_configuration import (
+    RouteScenarioConfiguration,
+)
 from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration
 from srunner.scenariomanager.timer import GameTime
 from srunner.scenarios.route_scenario import RouteScenario
@@ -35,10 +37,11 @@ def scenario_fn(client: carla.Client, config: ScenarioConfiguration):
     scenario = RouteScenario(world=client.get_world(), config=config, debug_mode=1)
     return scenario
 
-def make_configs(agent: AutopilotAgent, route_scenarios: str, routes: str) -> list[RouteScenarioConfiguration]:
-    configs = RouteParser.parse_routes_file(
-        route_filename=routes
-    )
+
+def make_configs(
+    agent: AutopilotAgent, route_scenarios: str, routes: str
+) -> list[RouteScenarioConfiguration]:
+    configs = RouteParser.parse_routes_file(route_filename=routes)
     for config in configs:
         config.ego_vehicles = [
             # Use our version of ActorConfiguration which allows to have actor-specific routes
@@ -46,14 +49,17 @@ def make_configs(agent: AutopilotAgent, route_scenarios: str, routes: str) -> li
                 route=config.route,
                 model="vehicle.lincoln.mkz2017",
                 rolename=agent.role_name,
-                transform=None
+                transform=None,
             )
         ]
     return configs
 
+
 def main():
     # Set environment variable for the scenario runner root. It can be found in the virtual environment.
-    os.environ["SCENARIO_RUNNER_ROOT"] = os.path.join(os.getcwd(), "venv/lib/python3.10/site-packages/srunner/scenarios")
+    os.environ["SCENARIO_RUNNER_ROOT"] = os.path.join(
+        os.getcwd(), "venv/lib/python3.10/site-packages/srunner/scenarios"
+    )
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
@@ -63,7 +69,7 @@ def main():
     configs = make_configs(
         agent=agent,
         route_scenarios="scenarios/routes/all_towns_traffic_scenarios_public.json",
-        routes="scenarios/routes/training.xml"
+        routes="scenarios/routes/training.xml",
     )
 
     env = mats_gym.raw_env(
@@ -76,7 +82,9 @@ def main():
     client.set_timeout(120.0)
 
     for config in configs[0:]:
-        config.agent = AutopilotAgent(role_name="hero", carla_host="localhost", carla_port=2000)
+        config.agent = AutopilotAgent(
+            role_name="hero", carla_host="localhost", carla_port=2000
+        )
         obs, info = env.reset(options={"scenario_config": config, "client": client})
         config.agent.setup(path_to_conf_file="", trajectory=config.keypoints)
         policy = get_policy_for_agent(config.agent)

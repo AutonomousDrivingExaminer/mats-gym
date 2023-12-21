@@ -6,7 +6,6 @@ import carla
 
 
 class Frame:
-
     def __init__(self, frame_info: str):
         self._frame_info = frame_info
         self._sections = self._get_sections(frame_info)
@@ -20,10 +19,11 @@ class Frame:
 
     @property
     def vehicle_controls(self) -> dict[int, carla.VehicleControl]:
-        control_section = self._sections['Vehicle animations']
+        control_section = self._sections["Vehicle animations"]
         control_list = re.findall(
-            r'Id: (\d+) Steering: (.*) Throttle: (.*) Brake:? (.*) Handbrake: ([0,1]) Gear: (\d+)',
-            control_section)
+            r"Id: (\d+) Steering: (.*) Throttle: (.*) Brake:? (.*) Handbrake: ([0,1]) Gear: (\d+)",
+            control_section,
+        )
         controls = {}
         for control in control_list:
             id, steer, throttle, brake, handbrake, gear = control
@@ -32,13 +32,13 @@ class Frame:
                 steer=float(steer),
                 brake=float(brake),
                 hand_brake=bool(int(handbrake)),
-                gear=int(gear)
+                gear=int(gear),
             )
         return controls
 
     @property
     def vehicle_light_states(self) -> dict[int, carla.VehicleLightState]:
-        vehicle_light_section = self._sections['Vehicle light animations']
+        vehicle_light_section = self._sections["Vehicle light animations"]
         state_list = re.findall(r"Id: (\d+) (.*)\n", vehicle_light_section)
         light_states = {}
         for id, state in state_list:
@@ -49,8 +49,11 @@ class Frame:
 
     @property
     def traffic_light_states(self) -> dict[int, carla.TrafficLightState]:
-        traffic_light_section = self._sections['State traffic lights']
-        states = re.findall(r'Id: (\d+) state: (.*) frozen: (.*) elapsedTime: (\d+)', traffic_light_section)
+        traffic_light_section = self._sections["State traffic lights"]
+        states = re.findall(
+            r"Id: (\d+) state: (.*) frozen: (.*) elapsedTime: (\d+)",
+            traffic_light_section,
+        )
         traffic_lights = {}
         for tl_state in states:
             id, state, frozen, elapsed_time = tl_state
@@ -59,7 +62,6 @@ class Frame:
 
 
 class SimulationHistory:
-
     def __init__(self, history: str):
         self._history = history
         self._frames = self._get_frames(history)
@@ -69,7 +71,7 @@ class SimulationHistory:
 
     @property
     def role_names(self) -> dict[int, str]:
-        pattern = r'Create (\d+): vehicle.*\n(?:  .*\n)*  role_name = (\w+)'
+        pattern = r"Create (\d+): vehicle.*\n(?:  .*\n)*  role_name = (\w+)"
         role_names = {}
         for match in re.findall(pattern, self._history):
             id, role_name = match

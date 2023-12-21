@@ -8,19 +8,30 @@ from srunner.scenarios.basic_scenario import BasicScenario
 
 
 class RouteEvaluator:
+    """
+    Computes the score for a route based on the events that happened during the simulation.
+    """
 
     def __init__(self, penalties: dict[str, float] = None):
+        """
+        @param penalties: A dictionary of penalties for each @see TrafficEventType.
+        """
         if not penalties:
             penalties = {
                 TrafficEventType.COLLISION_PEDESTRIAN.name: 0.50,
                 TrafficEventType.COLLISION_VEHICLE.name: 0.60,
                 TrafficEventType.COLLISION_STATIC.name: 0.65,
                 TrafficEventType.TRAFFIC_LIGHT_INFRACTION.name: 0.70,
-                TrafficEventType.STOP_INFRACTION.name: 0.80
+                TrafficEventType.STOP_INFRACTION.name: 0.80,
             }
         self._penalties = penalties
 
     def compute_score(self, events: list[TrafficEvent]) -> tuple[float, dict[str, Any]]:
+        """
+        Computes the score for a route based on the events that happened during the simulation.
+        @param events: A list of events that happened during the simulation.
+        @return: A tuple containing the total score and a dictionary with the scores for each category.
+        """
         infractions = defaultdict(list)
         target_reached = False
         score_route = 1.0
@@ -49,4 +60,3 @@ class RouteEvaluator:
             "infractions": dict(infractions),
         }
         return scores["total"], scores
-

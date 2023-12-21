@@ -18,6 +18,10 @@ from mats_gym.envs.scenario_env_wrapper import BaseScenarioEnvWrapper
 
 
 class AutonomousAgentWrapper(BaseScenarioEnvWrapper):
+    """
+    A wrapper for a scenario environment that uses an autonomous agent to control one of the agents.
+    """
+
     def __init__(
         self,
         env: BaseScenarioEnvWrapper,
@@ -25,6 +29,12 @@ class AutonomousAgentWrapper(BaseScenarioEnvWrapper):
         agent: AutonomousAgent,
         agent_config: str = None,
     ) -> None:
+        """
+        @param env: The environment to wrap.
+        @param agent_name: The name of the agent to control.
+        @param agent: An autonomous agent instance.
+        @param agent_config: The path to the agent configuration file.
+        """
         super().__init__(env)
         self.possible_agents = [a for a in self.env.agents if a != agent_name]
         self.agents = self.possible_agents[:]
@@ -32,9 +42,12 @@ class AutonomousAgentWrapper(BaseScenarioEnvWrapper):
         self._agent = agent
         self._agent_config = agent_config
         self._agent_obs = None
-    
 
-    def step(self, actions: dict) -> tuple[dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]]:
+    def step(
+        self, actions: dict
+    ) -> tuple[
+        dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]
+    ]:
         logging.debug(f"Compute vehicle control for {self._agent_name}.")
         action = actions.copy()
         sut_action = self._agent.run_step(
@@ -46,8 +59,18 @@ class AutonomousAgentWrapper(BaseScenarioEnvWrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
         self._agent_obs = obs.pop(self._agent_name)
         return obs, reward, terminated, truncated, info
-    
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[dict, dict[Any, dict]]:
+
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict, dict[Any, dict]]:
+        """
+        Resets the environment.
+        @param seed:
+        @param options: In addition to the options of the wrapped environment, the following options are supported:
+            - path_to_conf_file: The path to the agent configuration file.
+            - route: A tuple containing the routes to follow: (gps_coords, map_coords).
+        @return: The initial observations and info.
+        """
         options = options or {}
         obs, info = self.env.reset(seed=seed, options=options)
         self.agents = self.possible_agents[:]

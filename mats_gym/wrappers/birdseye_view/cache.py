@@ -1,5 +1,7 @@
 import hashlib
 import carla
+
+
 def generate_opendrive_content_hash(map: carla.Map) -> str:
     opendrive_content = map.to_opendrive()
     hash_func = hashlib.sha1()

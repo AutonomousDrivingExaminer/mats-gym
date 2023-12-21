@@ -16,7 +16,7 @@ from mats_gym.envs.scenario_env_wrapper import BaseScenarioEnvWrapper
 
 
 def get_vehicle_by_rolename(
-        rolename: str, world: carla.World
+    rolename: str, world: carla.World
 ) -> typing.Optional[carla.Vehicle]:
     actor_list = world.get_actors()
     for vehicle in actor_list.filter("vehicle.*"):
@@ -31,16 +31,18 @@ class MetaActionWrapper(BaseScenarioEnvWrapper):
     """
 
     def __init__(
-            self,
-            env: BaseScenarioEnvWrapper,
-            agent_names: list[str] = None,
-            planner_options: dict[str, Any] = None,
-            action_frequency: int = 20
+        self,
+        env: BaseScenarioEnvWrapper,
+        agent_names: list[str] = None,
+        planner_options: dict[str, Any] = None,
+        action_frequency: int = 20,
     ):
         """
         Constructor method.
         :param env: The scenario environment to wrap.
-        :param action_frequency: The number of simulation steps to take at each call to step().
+        :param agent_names: The names of the agents that should be controlled by the meta-action agent.
+        :param planner_options: A dictionary mapping agent names to planner options.
+        :param action_frequency: The frequency with which the meta-action agent is updated.
         """
         super().__init__(env)
         self.env = env
@@ -73,14 +75,16 @@ class MetaActionWrapper(BaseScenarioEnvWrapper):
         self._action_frequency = action_frequency
         self._steps = 0
         self._frames = []
-    
+
     def action_space(self, agent: Any) -> gymnasium.spaces.Dict:
         return self._action_spaces[agent]
-    
+
     def observation_space(self, agent: Any) -> gymnasium.spaces.Dict:
         return self._observation_spaces[agent]
-    
-    def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[dict, dict[Any, dict]]:
+
+    def reset(
+        self, seed: int | None = None, options: dict | None = None
+    ) -> tuple[dict, dict[Any, dict]]:
         logging.debug("Resetting MetaActionWrapper.")
         obs, info = super().reset(seed=seed, options=options)
         logging.debug("Finished child environment reset.")
@@ -103,21 +107,25 @@ class MetaActionWrapper(BaseScenarioEnvWrapper):
             obs[agent]["action_mask"] = mask
         return obs, info
 
-    def step(self, actions: dict) -> tuple[dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]]:
+    def step(
+        self, actions: dict
+    ) -> tuple[
+        dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]
+    ]:
         action = actions.copy()
         # Only update the meta-action agents every _action_frequency steps.
         if self._steps % self._action_frequency == 0:
             for agent, act in action.items():
                 if agent in self._meta_action_agents:
                     agent_action = Action(act)
-                    logging.debug(f"Agent '{agent}' requested maneuver '{agent_action.name}'.")
+                    logging.debug(
+                        f"Agent '{agent}' requested maneuver '{agent_action.name}'."
+                    )
                     self._meta_action_agents[agent].update_action(action=agent_action)
 
         for name, agent in self._meta_action_agents.items():
             control = agent.run_step()
-            action[name] = np.array(
-                [control.throttle, control.steer, control.brake]
-            )
+            action[name] = np.array([control.throttle, control.steer, control.brake])
 
         obs, reward, terminated, truncated, info = self.env.step(action)
 
@@ -128,7 +136,7 @@ class MetaActionWrapper(BaseScenarioEnvWrapper):
                 action_mask = self._get_action_mask(available_actions)
             else:
                 action_mask = np.zeros(len(Action), dtype=np.float32)
-            
+
             action_mask = action_mask * (1 - terminated[agent]) * (1 - truncated[agent])
             obs[agent]["action_mask"] = action_mask
             info[agent]["action_mask"] = action_mask

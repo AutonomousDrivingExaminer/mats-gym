@@ -1,11 +1,10 @@
 from __future__ import annotations
-import abc
+
 import ctypes
 import logging
 import os
-import time
-from abc import ABC
 import signal
+import time
 from signal import SIGABRT
 
 import carla
@@ -41,11 +40,23 @@ class DockerCarlaServer(CarlaServer):
         sensor_port: int = None,
         control_port: int = None,
         headless: bool = False,
-        gpus: list[str] = ["all"],
+        gpus: list[str] = None,
         container_name: str = "carla-server",
         image: str = "carlasim/carla:0.9.13",
         num_connection_retries: int = 10,
     ):
+        """
+        @param world_port: The world port of the server.
+        @param sensor_port: The sensor port of the server. Defaults to world_port + 1.
+        @param control_port: The control port of the server. Defaults to world_port + 2.
+        @param headless: Whether to start the server in headless mode.
+        @param gpus: A list of gpus to pass to the docker container. Defaults to ["all"].
+        @param container_name: The name of the docker container.
+        @param image: The docker image to use.
+        @param num_connection_retries: The number of retries to connect to the server.
+        """
+        if gpus is None:
+            gpus = ["all"]
         if sensor_port is None:
             sensor_port = world_port + 1
         if control_port is None:

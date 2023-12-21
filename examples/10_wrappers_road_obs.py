@@ -22,14 +22,20 @@ def policy():
     """
     A simple policy that drives the agent forward and turns left or right randomly.
     """
-    return np.array([
-        0.5 + np.random.rand() / 2,  # throttle
-        np.random.rand() - 0.5,  # steer
-        0.0  # brake
-    ])
+    return np.array(
+        [
+            0.5 + np.random.rand() / 2,  # throttle
+            np.random.rand() - 0.5,  # steer
+            0.0,  # brake
+        ]
+    )
+
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s")
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
+    )
     env = mats_gym.scenic_env(
         host="localhost",
         port=2000,
@@ -38,7 +44,7 @@ def main():
         resample_scenes=False,
         agent_name_prefixes=["adv", "sut"],
         render_mode="human",
-        render_config=renderers.camera_pov(agent="sut")
+        render_config=renderers.camera_pov(agent="sut"),
     )
     env = RoadObservationWrapper(env=env)
     print(env.action_space("sut"))

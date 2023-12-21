@@ -33,8 +33,10 @@ def is_used(port):
     """Checks whether a port is used"""
     return port in [conn.laddr.port for conn in psutil.net_connections()]
 
+
 def get_next_free_port(port):
     return next(filter(lambda p: not is_used(p), range(port, 32000)))
+
 
 class BaseScenarioEnv(ParallelEnv):
     """
@@ -44,9 +46,11 @@ class BaseScenarioEnv(ParallelEnv):
     metadata = {"render_modes": ["human", "rgb_array", "rgb_array_list"]}
 
     def __init__(
-        self,        
+        self,
         config: ScenarioConfiguration,
-        scenario_fn: typing.Callable[[carla.Client, typing.Any], BasicScenario],
+        scenario_fn: typing.Callable[
+            [carla.Client, ScenarioConfiguration], BasicScenario
+        ],
         client: carla.Client = None,
         scenario_wrappers: list[ScenarioWrapper] | ScenarioWrapper = None,
         sensor_specs: dict[str, list[dict]] = None,
@@ -61,11 +65,20 @@ class BaseScenarioEnv(ParallelEnv):
         traffic_manager_port: int = None,
     ) -> None:
         """
-        :param client: A carla client object.
-        :param scenario_fn: A function that constructs a scenario.
-        :param render_mode: The render mode to use. If None, no rendering is done.
-        :param render_config: The render configuration to use.
-        :param debug_mode: Whether to run the scenario in debug mode.
+        @param config: A scenario configuration instance.
+        @param scenario_fn: A function that, given a client and a scenario configuration, returns a scenario instance.
+        @param client: A carla client instance. Optional.
+        @param scenario_wrappers: A list of scenario wrappers to apply to the scenario. Optional.
+        @param sensor_specs: A dictionary mapping actor names to a list of sensor specifications. Optional.
+        @param seed: Random seed to use for the environment. Optional.
+        @param no_rendering_mode: Whether to use no rendering mode in carla. Default: False.
+        @param render_mode: The render mode to use. One of "human" or "rgb_array". Default: None.
+        @param render_config: A render configuration instance. Default: @see mats_gym.envs.renderers.RenderConfig.
+        @param infractions_penalties: A dictionary mapping traffic event types to penalties. Default: None.
+        @param replay_dir: The directory to store replays in. Default: "/home/carla".
+        @param debug_mode: Whether to use debug mode. Enabling debug mode will print additional information. Default: False.
+        @param timestep: The timestep to use for the environment. Default: 0.05.
+        @param traffic_manager_port: The port to use for the traffic manager. Default: 8000 or the next free port.
         """
         if traffic_manager_port is None:
             traffic_manager_port = get_next_free_port(8000)
@@ -112,10 +125,9 @@ class BaseScenarioEnv(ParallelEnv):
         self.possible_agents = [agent.rolename for agent in self._config.ego_vehicles]
         self.agents = self.possible_agents[:]
 
-
     def _make_sensor_suites(self, sensor_specs):
         return {actor: SensorSuite(sensor_specs[actor]) for actor in sensor_specs}
-    
+
     def action_space(self, agent: str) -> gymnasium.spaces.Space:
         config = [c for c in self._config.ego_vehicles if c.rolename == agent]
         assert len(config) != 0, f"Unknown agent: {agent}"
@@ -127,7 +139,7 @@ class BaseScenarioEnv(ParallelEnv):
             return space_utils.get_walker_action_space()
         else:
             raise ValueError(f"Unknown action type for model: {type(agent_cfg.model)}")
-    
+
     def observation_space(self, agent: str) -> gymnasium.spaces.Space:
         config = [c for c in self._config.ego_vehicles if c.rolename == agent]
         assert len(config) != 0, f"Unknown agent: {agent}"
@@ -142,7 +154,7 @@ class BaseScenarioEnv(ParallelEnv):
             suite = self._sensors[agent]
             spaces.update(suite.observation_space)
         return gymnasium.spaces.Dict(spaces)
-    
+
     @property
     def actors(self) -> dict[str, carla.Actor]:
         if self._scenario is None:
@@ -150,13 +162,16 @@ class BaseScenarioEnv(ParallelEnv):
 
         else:
             return {
-                agent.attributes.get("role_name", agent.id): agent 
+                agent.attributes.get("role_name", agent.id): agent
                 for agent in self._scenario.ego_vehicles
             }
-        
 
     @property
     def history(self) -> SimulationHistory:
+        """
+        Returns the simulation history.
+        @return: The simulation history of the current episode.
+        """
         history = self.client.show_recorder_file_info(
             f"{self._replay_dir}/scenario-env.log", True
         )
@@ -164,14 +179,26 @@ class BaseScenarioEnv(ParallelEnv):
 
     @property
     def scenario_status(self) -> py_trees.common.Status:
+        """
+        Returns the status of the scenario.
+        @return: The status of the scenario. Either RUNNING, SUCCESS, or FAILURE.
+        """
         return self._scenario.scenario_tree.status
 
     @property
     def client(self) -> carla.Client:
+        """
+        Returns the carla client.
+        @return: The carla client.
+        """
         return self._client
 
     @property
     def current_scenario(self) -> BasicScenario:
+        """
+        Returns the current scenario instance.
+        @return: The current scenario instance.
+        """
         return self._scenario
 
     def _reload_world(self):
@@ -207,7 +234,9 @@ class BaseScenarioEnv(ParallelEnv):
             world = self._client.load_world(self._config.town, reset_settings=False)
 
         if self._seed is not None:
-            logging.debug(f"Seeding traffic manager at port {self._traffic_manager_port} with seed {self._seed}.")
+            logging.debug(
+                f"Seeding traffic manager at port {self._traffic_manager_port} with seed {self._seed}."
+            )
             tm = self._client.get_trafficmanager(self._traffic_manager_port)
             tm.set_synchronous_mode(True)
             tm.set_random_device_seed(self._seed)
@@ -226,6 +255,16 @@ class BaseScenarioEnv(ParallelEnv):
     ) -> tuple[dict[str, ObsType], dict[str, dict]]:
         """
         Resets the environment.
+        @param seed: The seed to use for the environment. Optional.
+        @param options: Additional options to pass to the environment. Accepted options are:
+            - client: A carla client instance.
+            - traffic_manager_port: The port to use for the traffic manager.
+            - scenario_config: A scenario configuration instance.
+            - scenario_wrappers: A list of scenario wrappers to apply to the scenario.
+            - replay: A dictionary containing
+                 - history: A simulation history instance.
+                 - num_frames: The number of frames to replay. Default: len(history).
+        @return: A tuple containing the observations and info.
         """
         options = options or {}
         if seed is not None:
@@ -264,7 +303,6 @@ class BaseScenarioEnv(ParallelEnv):
                 wrappers = [wrappers]
             self._scenario_wrappers = wrappers
             logging.info(f"Reset with new scenario wrappers.")
-
 
         logging.info(f"Resetting world.")
         self._reload_world()
@@ -353,7 +391,8 @@ class BaseScenarioEnv(ParallelEnv):
             forward_vector = actor.get_transform().get_forward_vector()
             velocity_vector = obs[name]["velocity"]
             obs[name]["speed"] = np.dot(
-                velocity_vector, np.array([forward_vector.x, forward_vector.y, forward_vector.z])
+                velocity_vector,
+                np.array([forward_vector.x, forward_vector.y, forward_vector.z]),
             )
 
             if name in self._sensors:
@@ -372,7 +411,12 @@ class BaseScenarioEnv(ParallelEnv):
         dict[str, bool],
         dict[str, dict],
     ]:
-        
+        """
+        Executes a step in the environment.
+        @param action: A dictionary mapping agent names to actions.
+        @return: A tuple containing the observations, rewards, terminated, truncated, and info.
+        """
+
         # Apply actions and keep track of action history
         self._apply_actions(action)
 
@@ -430,11 +474,11 @@ class BaseScenarioEnv(ParallelEnv):
                     steer=round(act[1].item(), 2),
                     brake=round(act[2].item(), 2),
                 )
-                #logging.debug(
+                # logging.debug(
                 #    f"Applying controls: "
                 #    f"throttle={control.throttle:.2f}, steer={control.steer:.2f}, brake={control.brake:.2f} "
                 #    f"to agent {agent}."
-                #)
+                # )
                 command = carla.command.ApplyVehicleControl(actors[agent], control)
                 controls[agent] = control
             elif isinstance(actors[agent], carla.Walker):
@@ -464,9 +508,17 @@ class BaseScenarioEnv(ParallelEnv):
         self.controls.append(controls)
 
     def render(self) -> Optional[Union[RenderFrame, List[RenderFrame]]]:
+        """
+        Renders the environment.
+        @return: A rgb array if "rgb_array" is set as render mode, otherwise None.
+        """
         return self._renderer.render() if self._renderer else None
 
     def close(self):
+        """
+        Closes the environment. Terminates the scenario, cleans up CarlaDataProvider, and closes the renderer.
+        @return: None.
+        """
         logging.debug("Closing scenario environment.")
 
         for agent, sensor_suite in self._sensors.items():
@@ -486,7 +538,7 @@ class BaseScenarioEnv(ParallelEnv):
         info = {
             "__common__": {
                 "current_frame": self._current_frame(),
-                "simulation_time": GameTime.get_time()
+                "simulation_time": GameTime.get_time(),
             }
         }
         events = self._get_events(self._scenario.get_criteria())
@@ -533,7 +585,7 @@ class BaseScenarioEnv(ParallelEnv):
 
             if len(node.events) > len(self._events[node.id]):
                 logging.debug("New traffic events detected.")
-                for event in node.events[len(self._events[node.id]):]:
+                for event in node.events[len(self._events[node.id]) :]:
                     event.set_dict(
                         {
                             "frame": self._current_frame(),

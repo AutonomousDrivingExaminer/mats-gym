@@ -22,19 +22,22 @@ def policy(obs: dict, agent: str):
     # Get the available actions for the agent: an array of booleans for each action index.
     mask = obs[agent]["action_mask"]
     mask[-1] = False  # never brake
-    probs = mask / np.sum(mask) # uniform distribution over the available actions
+    probs = mask / np.sum(mask)  # uniform distribution over the available actions
     return np.random.choice(range(len(mask)), p=probs)
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s")
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
+    )
     env = mats_gym.scenic_env(
         scenario_specification="scenarios/scenic/carla_challenge_08.scenic",
         scenes_per_scenario=2,
         resample_scenes=False,
         agent_name_prefixes=["adv", "sut"],
         render_mode="human",
-        render_config=renderers.camera_pov(agent="sut")
+        render_config=renderers.camera_pov(agent="sut"),
     )
 
     # Wrap the environment with the MetaActionWrapper.
@@ -51,15 +54,15 @@ def main():
     # - 8: Stop
     env = MetaActionWrapper(
         env=env,
-        agent_names=["sut"], # agent names which are controlled by the meta actions
+        agent_names=["sut"],  # agent names which are controlled by the meta actions
         action_frequency=20,
         planner_options={
             "sut": {
                 "target_speed": 50.0,
                 "ignore_traffic_lights": True,
-                "ignore_stops": False
+                "ignore_stops": False,
             }
-        }
+        },
     )
 
     for _ in range(NUM_EPISODES):

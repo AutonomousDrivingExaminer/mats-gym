@@ -61,14 +61,14 @@ class FadingText(object):
         self.surface.set_alpha(500.0 * self.seconds_left)
 
     def render(self, display):
-        """ Renders the text in its surface and its position"""
+        """Renders the text in its surface and its position"""
         display.blit(self.surface, self.pos)
 
 
 class HelpText(object):
     def __init__(self, font, width, height):
         """Renders the help text that shows the controls for using no rendering mode"""
-        lines = __doc__.split('\n')
+        lines = __doc__.split("\n")
         self.font = font
         self.dim = (680, len(lines) * 22 + 12)
         self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
@@ -91,7 +91,7 @@ class HelpText(object):
             display.blit(self.surface, self.pos)
 
 
-class HUD (object):
+class HUD(object):
     """Class encharged of rendering the HUD that displays information about the world and the hero vehicle"""
 
     def __init__(self, name, width, height):
@@ -106,17 +106,19 @@ class HUD (object):
 
     def _init_hud_params(self):
         """Initialized visual parameters such as font text and size"""
-        font_name = 'courier' if os.name == 'nt' else 'mono'
+        font_name = "courier" if os.name == "nt" else "mono"
         fonts = [x for x in pygame.font.get_fonts() if font_name in x]
-        default_font = 'ubuntumono'
+        default_font = "ubuntumono"
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
         self._font_mono = pygame.font.Font(mono, 14)
-        self._header_font = pygame.font.SysFont('Arial', 14, True)
+        self._header_font = pygame.font.SysFont("Arial", 14, True)
         self.help = HelpText(pygame.font.Font(mono, 24), *self.dim)
         self._notifications = FadingText(
             pygame.font.Font(pygame.font.get_default_font(), 20),
-            (self.dim[0], 40), (0, self.dim[1] - 40))
+            (self.dim[0], 40),
+            (0, self.dim[1] - 40),
+        )
 
     def _init_data_params(self):
         """Initializes the content data structures"""
@@ -136,7 +138,14 @@ class HUD (object):
         """Adds a block of information in the left HUD panel of the visualizer"""
         self._info_text[title] = info
 
-    def render_vehicles_ids(self, vehicle_id_surface, list_actors, world_to_pixel, hero_actor, hero_transform):
+    def render_vehicles_ids(
+        self,
+        vehicle_id_surface,
+        list_actors,
+        world_to_pixel,
+        hero_actor,
+        hero_transform,
+    ):
         """When flag enabled, it shows the IDs of the vehicles that are spawned in the world. Depending on the vehicle type,
         it will render it in different colors"""
 
@@ -145,14 +154,14 @@ class HUD (object):
             vehicle_id_surface.set_alpha(150)
             for actor in list_actors:
                 x, y = world_to_pixel(actor[1].location)
-                role_name = actor[0].attributes['role_name']
+                role_name = actor[0].attributes["role_name"]
                 angle = 0
                 if hero_actor is not None:
                     angle = -hero_transform.rotation.yaw - 90
 
-                if role_name == 'sut':
-                    color = pygame.Color(0,255,0)
-                elif role_name.startswith('adv'):
+                if role_name == "sut":
+                    color = pygame.Color(0, 255, 0)
+                elif role_name.startswith("adv"):
                     color = COLOR_SCARLET_RED_0
                 else:
                     color = COLOR_SKY_BLUE_0
@@ -177,7 +186,9 @@ class HUD (object):
             for title, info in self._info_text.items():
                 if not info:
                     continue
-                surface = self._header_font.render(title, True, COLOR_ALUMINIUM_0).convert_alpha()
+                surface = self._header_font.render(
+                    title, True, COLOR_ALUMINIUM_0
+                ).convert_alpha()
                 display.blit(surface, (8 + bar_width / 2, 18 * i + v_offset))
                 v_offset += 12
                 i += 1
@@ -186,25 +197,39 @@ class HUD (object):
                         break
                     if isinstance(item, list):
                         if len(item) > 1:
-                            points = [(x + 8, v_offset + 8 + (1.0 - y) * 30) for x, y in enumerate(item)]
+                            points = [
+                                (x + 8, v_offset + 8 + (1.0 - y) * 30)
+                                for x, y in enumerate(item)
+                            ]
                             pygame.draw.lines(display, (255, 136, 0), False, points, 2)
                         item = None
                     elif isinstance(item, tuple):
                         if isinstance(item[1], bool):
                             rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
-                            pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect, 0 if item[1] else 1)
+                            pygame.draw.rect(
+                                display, COLOR_ALUMINIUM_0, rect, 0 if item[1] else 1
+                            )
                         else:
-                            rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, 6))
+                            rect_border = pygame.Rect(
+                                (bar_h_offset, v_offset + 8), (bar_width, 6)
+                            )
                             pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect_border, 1)
                             f = (item[1] - item[2]) / (item[3] - item[2])
                             if item[2] < 0.0:
-                                rect = pygame.Rect((bar_h_offset + f * (bar_width - 6), v_offset + 8), (6, 6))
+                                rect = pygame.Rect(
+                                    (bar_h_offset + f * (bar_width - 6), v_offset + 8),
+                                    (6, 6),
+                                )
                             else:
-                                rect = pygame.Rect((bar_h_offset, v_offset + 8), (f * bar_width, 6))
+                                rect = pygame.Rect(
+                                    (bar_h_offset, v_offset + 8), (f * bar_width, 6)
+                                )
                             pygame.draw.rect(display, COLOR_ALUMINIUM_0, rect)
                         item = item[0]
                     if item:  # At this point has to be a str.
-                        surface = self._font_mono.render(item, True, COLOR_ALUMINIUM_0).convert_alpha()
+                        surface = self._font_mono.render(
+                            item, True, COLOR_ALUMINIUM_0
+                        ).convert_alpha()
                         display.blit(surface, (8, 18 * i + v_offset))
                     v_offset += 18
                 v_offset += 24
