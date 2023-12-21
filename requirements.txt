@@ -1,0 +1,12 @@
+carla==0.9.15
+filelock==3.0.12
+opencv-python
+gymnasium
+pygame
+git+https://github.com/BerkeleyLearnVerify/Scenic.git@serialization#egg=scenic
+git+https://github.com/AutonomousDrivingExaminer/scenario_runner.git#egg=srunner
+git+https://github.com/AutonomousDrivingExaminer/leaderboard.git#egg=leaderboard
+pettingzoo
+multiprocess
+docker
+optree
