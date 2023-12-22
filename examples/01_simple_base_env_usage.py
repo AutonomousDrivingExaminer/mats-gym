@@ -47,7 +47,7 @@ def policy():
 def scenario_fn(client: carla.Client, config: ScenarioConfiguration):
     """
     This function is called by the environment to create the scenario.
-    :param world: The carla world.
+    :param client: The carla client.
     :param config: The scenario configuration.
     :return: A base scenario instance.
     """
