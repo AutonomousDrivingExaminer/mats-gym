@@ -78,9 +78,9 @@ def main():
         format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
     )
 
-    # The base environment can be used directly by providing a scenario factory function. This function takes no
-    # arguments and returns a scenario instance. The scenario instance must be a subclass of BaseScenario. Furthermore,
-    # the function is responsible for reloading the world and creating the ego vehicles. For concrete examples, see
+    # The base environment can be used directly by providing a scenario factory function. This function takes two
+    # arguments (client and config) and returns a scenario instance. The scenario instance must be a subclass of BaseScenario.
+    # Furthermore, the function is responsible for reloading the world and creating the ego vehicles. For concrete examples, see
     # the adapter wrappers in adex_gym.envs.adapters (for Scenic and ScenarioRunner scenarios).
 
     # By default, the observation space for each agent is a dictionary with one key "state" which holds a
