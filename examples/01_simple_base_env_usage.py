@@ -95,7 +95,7 @@ def main():
     config = configs[0]
     env = mats_gym.raw_env(
         config=config,  # The scenario configuration.
-        scenario_fn=scenario_fn,  # A function that takes no arguments and returns a scenario instance.
+        scenario_fn=scenario_fn,  # A function that takes a carla client and a scenario config to instantiate a scenario.
         render_mode="human",  # The render mode. Can be "human", "rgb_array", "rgb_array_list".
         render_config=renderers.camera_pov(
             agent="scenario"
