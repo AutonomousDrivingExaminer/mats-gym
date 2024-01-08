@@ -13,4 +13,4 @@ docker run --gpus all \
            -e SDL_VIDEODRIVER=x11 \
            -v /tmp/.X11-unix:/tmp/.X11-unix \
            -v $(pwd)/reports/replays:/home/carla/replays \
-           adex/carla:$CARLA_VERSION ./CarlaUE4.sh -carla-server -world-port=${pfrom}
+           carlasim/carla:$CARLA_VERSION ./CarlaUE4.sh -carla-server -world-port=${pfrom}
