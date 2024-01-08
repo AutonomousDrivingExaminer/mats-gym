@@ -73,4 +73,4 @@ while not terminated:
 env.close()
 ```
 
-For more examples, have a look at the [examples](mats_gym/examples) directory.
+For more examples, have a look at the [examples](./examples) directory.
