@@ -6,7 +6,7 @@
 MATS-Gym is a [PettingZoo](https://pettingzoo.farama.org/index.html) environment for training and evaluating autonomous driving agents in CARLA.
 Environments can be created from scenarios that are implemented as [ScenarioRunner](https://github.com/carla-simulator/scenario_runner) scenarios,
 allowing to leverage a large number of existing driving scenarios. 
-Furthermore, we provide an integration with [Scenic](https://github.com/BerkeleyLearnVerify/Scenic) to which allows us to sample scenarios from Scenic specifications.
+Furthermore, we provide an integration with [Scenic](https://github.com/BerkeleyLearnVerify/Scenic) which allows us to sample scenarios from Scenic specifications.
 
 ## Main Features
 - Supports multiple scenario specification standards:
