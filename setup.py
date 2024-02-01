@@ -25,5 +25,5 @@ setup(
             "docker",
         ]
     },
-    packages=find_packages(exclude=["maps", "cache", "scenarios"])
+    packages=find_packages(exclude=["maps", "cache", "scenarios", "agents"])
 )
