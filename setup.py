@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
             requirements.append(line)
 
 setup(
-    name="adex_gym",
+    name="mats_gym",
     version="1.0.0",
     long_description=long_description,
     install_requires=requirements,
