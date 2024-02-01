@@ -25,5 +25,9 @@ setup(
             "docker",
         ]
     },
-    packages=find_packages(exclude=["maps", "cache", "scenarios", "agents"])
+    packages=find_packages(exclude=["maps", "cache", "scenarios"]),
+    package_dir={
+      "mats_gym": "mats_gym",
+      "agents": "agents"
+    }
 )
