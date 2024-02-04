@@ -54,13 +54,25 @@ class RoadObservationWrapper(BaseScenarioEnvWrapper):
         obs_space["lane_change"] = gymnasium.spaces.Discrete(len(self._lane_change))
         return obs_space
 
+    def observation(self, observation: dict) -> dict:
+        map = CarlaDataProvider.get_map()
+        for agent in observation:
+            location = self.env.actors[agent].get_location()
+            waypoint: carla.Waypoint = map.get_waypoint(location)
+            observation[agent]["lane_id"] = waypoint.lane_id
+            observation[agent]["road_id"] = waypoint.road_id
+            observation[agent]["section_id"] = waypoint.section_id
+            observation[agent]["on_junction"] = waypoint.is_junction
+            observation[agent]["lane_width"] = waypoint.lane_width
+            observation[agent]["lane_type"] = self._lane_type_values[waypoint.lane_type]
+            observation[agent]["lane_change"] = self._lane_change[waypoint.lane_change]
+        return observation
+
     def reset(
         self, seed: int | None = None, options: dict | None = None
     ) -> tuple[dict, dict[Any, dict]]:
         obs, info = super().reset(seed, options)
-        for agent in obs:
-            obs[agent].update(self._get_road_information(agent))
-        return obs, info
+        return self.observation(obs), info
 
     def step(
         self, actions: dict
@@ -68,25 +80,4 @@ class RoadObservationWrapper(BaseScenarioEnvWrapper):
         dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]
     ]:
         obs, *rest = super().step(actions)
-        for agent in obs:
-            obs[agent].update(self._get_road_information(agent))
-        return obs, *rest
-
-    def _get_road_information(self, agent: str) -> dict:
-        location = self.env.actors[agent].get_location()
-        map = CarlaDataProvider.get_map()
-        waypoint: carla.Waypoint = map.get_waypoint(location)
-        return {
-            "lane_id": waypoint.lane_id,
-            "road_id": waypoint.road_id,
-            "section_id": waypoint.section_id,
-            "on_junction": waypoint.is_junction,
-            "lane_width": waypoint.lane_width,
-            "lane_type": self._lane_type_values[waypoint.lane_type],
-            "lane_change": self._lane_change[waypoint.lane_change],
-        }
-
-    def observe(self, agent: str) -> dict:
-        observation = self.env.observe(agent)
-        observation.update(self._get_road_information(agent))
-        return observation
+        return self.observation(obs), *rest

@@ -13,9 +13,7 @@ class BaseScenarioEnvWrapper(BaseParallelWrapper):
     A wrapper for a scenario environment.
     """
 
-    env: BaseScenarioEnv | BaseScenarioEnvWrapper
-
-    def __init__(self, env: BaseScenarioEnv | BaseScenarioEnvWrapper):
+    def __init__(self, env: BaseScenarioEnv):
         self.agents = env.agents[:]
         super().__init__(env)
 
@@ -50,11 +48,3 @@ class BaseScenarioEnvWrapper(BaseParallelWrapper):
         @return: A dictionary mapping agent names to carla actors.
         """
         return self.env.actors
-
-    def observe(self, agent: str) -> dict:
-        """
-        Returns the observation for the given agent.
-        @param agent: The agent name.
-        @return: The observation for the agent.
-        """
-        return self.env.observe(agent)

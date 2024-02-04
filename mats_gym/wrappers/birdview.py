@@ -54,6 +54,7 @@ class BirdViewObservationWrapper(BaseScenarioEnvWrapper):
         @param obs_config: A ObservationConfig instance or a dictionary mapping agent names to ObservationConfig instances.
         """
         super().__init__(env)
+
         if not isinstance(obs_config, dict):
             obs_config = {agent: obs_config for agent in self.agents}
 
@@ -86,8 +87,7 @@ class BirdViewObservationWrapper(BaseScenarioEnvWrapper):
                     pixels_per_meter=config.pixels_per_meter,
                     crop_type=config.crop_type,
                 )
-        obs = self._add_birdview_to_obs(obs)
-        return obs, info
+        return self.observation(obs), info
 
     def _make_classifier(self, prefix: str) -> typing.Callable[[carla.Actor], bool]:
         return lambda vehicle: vehicle.attributes.get("role_name", "").startswith(
@@ -100,29 +100,28 @@ class BirdViewObservationWrapper(BaseScenarioEnvWrapper):
         dict, dict[Any, float], dict[Any, bool], dict[Any, bool], dict[Any, dict]
     ]:
         obs, *rest = super().step(actions)
-        return self._add_birdview_to_obs(obs), *rest
+        return self.observation(obs), *rest
 
     def observation_space(self, agent: Any) -> gymnasium.spaces.Dict:
-        obs_space = self.env.observation_space(agent)
-        if agent in self._producers:
-            config: ObservationConfig = self._config[agent]
-            high = 1
-            if config.as_rgb:
-                num_layers = 3
-                high = 255
-            elif config.vehicle_class_prefixes is None:
-                num_layers = len(config.masks) + 1
-            else:
-                num_layers = len(config.masks) + len(config.vehicle_class_prefixes)
+        config: ObservationConfig = self._config[agent]
+        high = 1
+        if config.as_rgb:
+            num_layers = 3
+            high = 255
+        elif config.vehicle_class_prefixes is None:
+            num_layers = len(config.masks) + 1
+        else:
+            num_layers = len(config.masks) + len(config.vehicle_class_prefixes)
 
-            bv_space = gymnasium.spaces.Box(
-                low=0,
-                high=high,
-                shape=(config.height, config.width, num_layers),
-                dtype=np.uint8,
-            )
-            obs_space = gymnasium.spaces.Dict({**obs_space.spaces, "birdview": bv_space})
-        return obs_space
+        bv_space = gymnasium.spaces.Box(
+            low=0,
+            high=high,
+            shape=(config.height, config.width, num_layers),
+            dtype=np.uint8,
+        )
+        return gymnasium.spaces.Dict(
+            {**self.env.observation_space(agent).spaces, "birdview": bv_space}
+        )
 
     def _get_actor_config(self, agent: str) -> ActorConfiguration:
         configs = [
@@ -135,44 +134,36 @@ class BirdViewObservationWrapper(BaseScenarioEnvWrapper):
         else:
             return None
 
-    def _get_birdview(self, agent: str) -> dict:
-        if not agent in self._producers:
-            return {}
-        actor = self.env.actors[agent]
-        actor_config = self._get_actor_config(agent)
-        bv_config = self._config[agent]
-        if actor_config.route:
-            route = [loc for loc, wp in actor_config.route]
-        else:
-            route = None
+    def observation(self, observation: dict) -> dict:
+        for agent in observation:
+            if not agent in self._producers:
+                continue
 
-        producer = self._producers[agent]
-        bv = producer.produce(actor, route=route)
+            actor = self.env.actors[agent]
+            actor_config = self._get_actor_config(agent)
+            bv_config = self._config[agent]
+            if actor_config.route:
+                route = [loc for loc, wp in actor_config.route]
+            else:
+                route = None
 
-        # Zero out masks that are not in the config
-        for m in BirdViewMasks:
-            if m not in bv_config.masks:
-                bv[..., m] = 0
+            producer = self._producers[agent]
+            bv = producer.produce(actor, route=route)
 
-        if bv_config.as_rgb:
-            # Convert to RGB if requested
-            bv = producer.as_rgb(bv)
-        else:
-            # Remove masks that are not in the config
+            # Zero out masks that are not in the config
             for m in BirdViewMasks:
                 if m not in bv_config.masks:
-                    np.delete(bv, m, axis=2)
-        return bv
+                    bv[..., m] = 0
 
-    def _add_birdview_to_obs(self, obs: dict) -> dict:
-        for agent in self.agents:
-            if agent in self._producers:
-                obs[agent]["birdview"] = self._get_birdview(agent)
-        return obs
+            if bv_config.as_rgb:
+                # Convert to RGB if requested
+                bv = producer.as_rgb(bv)
+            else:
+                # Remove masks that are not in the config
+                for m in BirdViewMasks:
+                    if m not in bv_config.masks:
+                        np.delete(bv, m, axis=2)
 
-    def observe(self, agent: str) -> dict:
-        obs = self.env.observe(agent)
-        if agent in self._producers:
-            obs["birdview"] = self._get_birdview(agent)
-        return obs
+            observation[agent]["birdview"] = bv
 
+        return observation
