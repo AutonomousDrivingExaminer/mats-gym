@@ -50,7 +50,7 @@ def show_obs(obs, agent):
 
 def main():
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
     )
 
@@ -62,7 +62,7 @@ def main():
         resample_scenes=False,
         agent_name_prefixes=["vehicle"],
         render_mode="human",
-        render_config=renderers.camera_pov(agent="vehicle_1"),
+        render_config=renderers.camera_pov(agent="vehicle_0"),
     )
     env = BirdViewObservationWrapper(env=env)
 
@@ -105,7 +105,7 @@ def main():
         while not done:
             actions = {agent: policy() for agent in env.agents}
             obs, reward, done, truncated, info = env.step(actions)
-            show_obs(obs, "vehicle_1")
+            show_obs(obs, "vehicle_0")
             for agent, reward in reward.items():
                 rewards[agent] += reward
             print(

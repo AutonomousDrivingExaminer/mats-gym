@@ -46,23 +46,23 @@ class BaseScenarioEnv(ParallelEnv):
     metadata = {"render_modes": ["human", "rgb_array", "rgb_array_list"]}
 
     def __init__(
-        self,
-        config: ScenarioConfiguration,
-        scenario_fn: typing.Callable[
-            [carla.Client, ScenarioConfiguration], BasicScenario
-        ],
-        client: carla.Client = None,
-        scenario_wrappers: list[ScenarioWrapper] | ScenarioWrapper = None,
-        sensor_specs: dict[str, list[dict]] = None,
-        seed: int = None,
-        no_rendering_mode: bool = False,
-        render_mode: str = None,
-        render_config: renderers.RenderConfig = renderers.RenderConfig(),
-        infractions_penalties: dict[TrafficEventType, float] = None,
-        replay_dir: str = "/home/carla",
-        debug_mode: bool = False,
-        timestep: float = 0.05,
-        traffic_manager_port: int = None,
+            self,
+            config: ScenarioConfiguration,
+            scenario_fn: typing.Callable[
+                [carla.Client, ScenarioConfiguration], BasicScenario
+            ],
+            client: carla.Client = None,
+            scenario_wrappers: list[ScenarioWrapper] | ScenarioWrapper = None,
+            sensor_specs: dict[str, list[dict]] = None,
+            seed: int = None,
+            no_rendering_mode: bool = False,
+            render_mode: str = None,
+            render_config: renderers.RenderConfig = renderers.RenderConfig(),
+            infractions_penalties: dict[TrafficEventType, float] = None,
+            replay_dir: str = "/home/carla",
+            debug_mode: bool = False,
+            timestep: float = 0.05,
+            traffic_manager_port: int = None,
     ) -> None:
         """
         @param config: A scenario configuration instance.
@@ -201,6 +201,50 @@ class BaseScenarioEnv(ParallelEnv):
         """
         return self._scenario
 
+    def observe(self, agent: str) -> dict[str, ObsType]:
+        """
+        Returns the observations for the given agent.
+        @param agent: The agent name.
+        @return: The observations for the agent.
+        """
+        obs = {}
+        actor = self.actors[agent]
+        transform = actor.get_transform()
+        velocity = actor.get_velocity()
+
+        obs["location"] = np.array([
+            transform.location.x,
+            transform.location.y,
+            transform.location.z,
+        ], dtype=np.float32)
+
+        obs["rotation"] = np.array([
+            transform.rotation.roll,
+            transform.rotation.pitch,
+            transform.rotation.yaw,
+        ], dtype=np.float32)
+
+        obs["velocity"] = np.array([
+            velocity.x,
+            velocity.y,
+            velocity.z,
+        ], dtype=np.float32)
+
+        # compute speed by projecting velocity into forward direction
+        forward_vector = transform.get_forward_vector()
+        velocity_vector = obs["velocity"]
+        obs["speed"] = np.dot(
+            velocity_vector,
+            np.array([forward_vector.x, forward_vector.y, forward_vector.z]),
+        )
+
+        # retrieve sensor observations
+        if agent in self._sensors:
+            sensor_obs = self._sensors[agent].get_observations()
+            obs.update(sensor_obs)
+
+        return obs
+
     def _reload_world(self):
         world = self._client.get_world()
         world.tick()
@@ -208,9 +252,9 @@ class BaseScenarioEnv(ParallelEnv):
         map_name = world.get_map().name.split("/")[-1]
 
         if (
-            not settings.synchronous_mode
-            or settings.fixed_delta_seconds != self._timestep
-            or settings.no_rendering_mode != self._no_rendering_mode
+                not settings.synchronous_mode
+                or settings.fixed_delta_seconds != self._timestep
+                or settings.no_rendering_mode != self._no_rendering_mode
         ):
             logging.debug(
                 f"Setting world settings to sync mode with timestep {self._timestep}."
@@ -249,9 +293,9 @@ class BaseScenarioEnv(ParallelEnv):
         CarlaDataProvider.get_map()
 
     def reset(
-        self,
-        seed: int | None = None,
-        options: dict | None = None,
+            self,
+            seed: int | None = None,
+            options: dict | None = None,
     ) -> tuple[dict[str, ObsType], dict[str, dict]]:
         """
         Resets the environment.
@@ -306,6 +350,8 @@ class BaseScenarioEnv(ParallelEnv):
 
         logging.info(f"Resetting world.")
         self._reload_world()
+        logging.debug(f"Number of actors: {len(self.client.get_world().get_actors())}.")
+
 
         logging.info(f"Calling scenario function to reset scenario.")
         scenario = self._scenario_fn(self.client, self._config)
@@ -352,58 +398,16 @@ class BaseScenarioEnv(ParallelEnv):
         else:
             if "replay" in options:
                 logging.warning("Replay requested, but no action history available.")
-            obs, info = self._get_observations(), self._get_simulation_info()
+
+            obs = {agent: self.observe(agent) for agent in self.agents}
+            info = self._get_simulation_info()
 
         logging.debug("Resetting scenario environment done.")
         self.controls = []
         return obs, info
 
-    def _get_observations(self) -> dict[str, dict]:
-        obs = {}
-        for name, actor in self.actors.items():
-            obs[name] = {}
-            obs[name]["location"] = np.array(
-                [
-                    actor.get_location().x,
-                    actor.get_location().y,
-                    actor.get_location().z,
-                ],
-                dtype=np.float32,
-            )
-            obs[name]["rotation"] = np.array(
-                [
-                    actor.get_transform().rotation.roll,
-                    actor.get_transform().rotation.pitch,
-                    actor.get_transform().rotation.yaw,
-                ],
-                dtype=np.float32,
-            )
-            obs[name]["velocity"] = np.array(
-                [
-                    actor.get_velocity().x,
-                    actor.get_velocity().y,
-                    actor.get_velocity().z,
-                ],
-                dtype=np.float32,
-            )
-
-            # compute speed by projecting velocity into forward direction
-            forward_vector = actor.get_transform().get_forward_vector()
-            velocity_vector = obs[name]["velocity"]
-            obs[name]["speed"] = np.dot(
-                velocity_vector,
-                np.array([forward_vector.x, forward_vector.y, forward_vector.z]),
-            )
-
-            if name in self._sensors:
-                sensor_obs = {
-                    k: v[1] for k, v in self._sensors[name].get_observations().items()
-                }
-                obs[name].update(sensor_obs)
-        return obs
-
     def step(
-        self, action: dict[str, np.ndarray]
+            self, action: dict[str, np.ndarray]
     ) -> tuple[
         dict[str, ObsType],
         dict[str, float],
@@ -432,7 +436,7 @@ class BaseScenarioEnv(ParallelEnv):
         finished = self.scenario_status != py_trees.common.Status.RUNNING
 
         info = self._get_simulation_info()
-        obs = self._get_observations()
+        obs = {agent: self.observe(agent) for agent in self.agents}
         terminated = {agent: finished for agent in self.agents}
         truncated = {agent: False for agent in self.agents}
         logging.debug(f"Scenario status: {self.scenario_status.name}")
@@ -562,8 +566,9 @@ class BaseScenarioEnv(ParallelEnv):
     def _replay(self, history: SimulationHistory, num_frames: int = 0):
         num_frames = min(num_frames, len(history) + 2)
         logging.debug(f"Replaying {num_frames} frames.")
-        obs, info = self._get_observations(), self._get_simulation_info()
-        for i, frame in enumerate(history.frames[2 : num_frames + 2]):
+        obs = {agent: self.observe(agent) for agent in self.agents}
+        info = self._get_simulation_info()
+        for i, frame in enumerate(history.frames[2: num_frames + 2]):
             logging.debug(f"Replaying frame {i}.")
             actions = {
                 history.role_names[id]: np.array(
@@ -585,7 +590,7 @@ class BaseScenarioEnv(ParallelEnv):
 
             if len(node.events) > len(self._events[node.id]):
                 logging.debug("New traffic events detected.")
-                for event in node.events[len(self._events[node.id]) :]:
+                for event in node.events[len(self._events[node.id]):]:
                     event.set_dict(
                         {
                             "frame": self._current_frame(),
