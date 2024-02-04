@@ -7,7 +7,7 @@ from srunner.scenarios.basic_scenario import BasicScenario
 
 import mats_gym
 from mats_gym.envs import renderers
-from mats_gym.wrappers import CarlaVisualizationWrapper
+from mats_gym.wrappers import CarlaVisualizationWrapper, MetaActionWrapper
 from mats_gym.wrappers.road_graph import RoadGraphObservationWrapper
 
 """
@@ -45,7 +45,19 @@ def main():
         resample_scenes=False,
         agent_name_prefixes=["vehicle"],
         render_mode="human",
-        render_config=renderers.camera_pov(agent="vehicle_1"),
+        render_config=renderers.camera_pov(agent="vehicle_0"),
+    )
+    env = MetaActionWrapper(
+        env=env,
+        agent_names=["vehicle_0"],  # agent names which are controlled by the meta actions
+        action_frequency=20,
+        planner_options={
+            "sut": {
+                "target_speed": 50.0,
+                "ignore_traffic_lights": True,
+                "ignore_stops": False,
+            }
+        },
     )
     env = RoadGraphObservationWrapper(env=env)
 
@@ -53,7 +65,7 @@ def main():
         obs, info = env.reset()
         done = False
         while not done:
-            actions = {agent: policy() for agent in env.agents}
+            actions = {agent: env.action_space(agent).sample() for agent in env.agents}
             obs, reward, done, truncated, info = env.step(actions)
             done = all(done.values())
             env.render()
