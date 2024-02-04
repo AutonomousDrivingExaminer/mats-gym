@@ -1,10 +1,10 @@
 from __future__ import annotations
-param map = localPath('../maps/Town04.xodr')  # or other CARLA map that definitely works
-param carla_map = 'Town04'
+param map = localPath('../maps/Town05.xodr')  # or other CARLA map that definitely works
+param carla_map = 'Town05'
 model scenic.simulators.carla.model
 
 DISTANCE_TO_INTERSECTION = Uniform(15, 20) * -1
-NUM_VEHICLES = 4
+NUM_VEHICLES = 1
 
 class RouteFollowingCar(Car):
     route: list[Lane]
@@ -12,8 +12,7 @@ class RouteFollowingCar(Car):
 def is_4way_intersection(inter) -> bool:
     left_turns = filter(lambda i: i.type == ManeuverType.LEFT_TURN, inter.maneuvers)
     all_single_lane = all(len(lane.adjacentLanes) == 1 for lane in inter.incomingLanes)
-    return len(left_turns) >=4 and inter.is4Way and all_single_lane
-
+    return len(left_turns) >=4 and inter.is4Way
 
 
 vehicles = []
