@@ -62,9 +62,9 @@ class Frame:
 
 
 class SimulationHistory:
-    def __init__(self, history: str):
+    def __init__(self, history: str, num_frames: int = -1):
         self._history = history
-        self._frames = self._get_frames(history)
+        self._frames = self._get_frames(history)[:num_frames]
 
     def __len__(self):
         return len(self._frames)

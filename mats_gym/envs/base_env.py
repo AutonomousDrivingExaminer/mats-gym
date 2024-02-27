@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 import logging
 import random
 import typing
 from collections import defaultdict
+from copy import deepcopy
 from typing import Optional, Union, List
 
 import carla
@@ -24,7 +26,7 @@ from srunner.scenarios.basic_scenario import BasicScenario
 
 from mats_gym.envs import renderers, space_utils
 from mats_gym.envs.evaluation import RouteEvaluator
-from mats_gym.envs.replays import SimulationHistory
+from mats_gym.envs.replays import SimulationHistory, Frame
 from mats_gym.scenarios.scenario_wrapper import ScenarioWrapper
 from mats_gym.sensors import SensorSuite
 
@@ -106,7 +108,10 @@ class BaseScenarioEnv(ParallelEnv):
         self._replay_dir = replay_dir
         self._sensors = self._make_sensor_suites(self._sensor_specs)
         self._evaluator = RouteEvaluator(infractions_penalties)
+
+        self._make_rolenames_unique(config)
         self._config = config
+
         self._scenario = None
         self._no_rendering_mode = no_rendering_mode
 
@@ -124,6 +129,16 @@ class BaseScenarioEnv(ParallelEnv):
         )
         self.possible_agents = [agent.rolename for agent in self._config.ego_vehicles]
         self.agents = self.possible_agents[:]
+
+    def _make_rolenames_unique(self, config):
+        actor_rolenames = [actor.rolename for actor in config.other_actors]
+        for i, actor in enumerate(config.other_actors):
+            if not actor.rolename:
+                actor.rolename = f"npc_{i}"
+            count = actor_rolenames.count(actor.rolename)
+            if count > 1:
+                actor.rolename = f"{actor.rolename}_{count}"
+                actor_rolenames.remove(actor.rolename)
 
     def _make_sensor_suites(self, sensor_specs):
         return {actor: SensorSuite(sensor_specs[actor]) for actor in sensor_specs}
@@ -156,14 +171,13 @@ class BaseScenarioEnv(ParallelEnv):
         return gymnasium.spaces.Dict(spaces)
 
     @property
-    def actors(self) -> dict[str, carla.Actor]:
+    def actors(self) -> dict[str, carla.Vehicle | carla.Walker]:
         if self._scenario is None:
             return {agent: None for agent in self.agents}
-
         else:
-            return {
+             return {
                 agent.attributes.get("role_name", agent.id): agent
-                for agent in self._scenario.ego_vehicles
+                for agent in self._scenario.ego_vehicles + self._scenario.other_actors
             }
 
     @property
@@ -338,7 +352,9 @@ class BaseScenarioEnv(ParallelEnv):
 
         self._current_step += 1
         if "scenario_config" in options:
-            self._config = options["scenario_config"]
+            config = options["scenario_config"]
+            self._make_rolenames_unique(config)
+            self._config = config
             logging.info(f"Reset with new config.")
 
         if "scenario_wrappers" in options:
@@ -390,17 +406,9 @@ class BaseScenarioEnv(ParallelEnv):
         self._events = {node.id: [] for node in self._scenario.get_criteria()}
         self._current_step = 0
 
-        if "replay" in options:
-            replay = options["replay"]
-            history = SimulationHistory(replay["history"])
-            num_frames = replay.get("num_frames", len(history))
-            obs, info = self._replay(history=history, num_frames=num_frames)
-        else:
-            if "replay" in options:
-                logging.warning("Replay requested, but no action history available.")
 
-            obs = {agent: self.observe(agent) for agent in self.agents}
-            info = self._get_simulation_info()
+        obs = {agent: self.observe(agent) for agent in self.agents}
+        info = self._get_simulation_info()
 
         logging.debug("Resetting scenario environment done.")
         self.controls = []
@@ -562,24 +570,6 @@ class BaseScenarioEnv(ParallelEnv):
 
     def _current_frame(self):
         return self._current_step + 1
-
-    def _replay(self, history: SimulationHistory, num_frames: int = 0):
-        num_frames = min(num_frames, len(history) + 2)
-        logging.debug(f"Replaying {num_frames} frames.")
-        obs = {agent: self.observe(agent) for agent in self.agents}
-        info = self._get_simulation_info()
-        for i, frame in enumerate(history.frames[2: num_frames + 2]):
-            logging.debug(f"Replaying frame {i}.")
-            actions = {
-                history.role_names[id]: np.array(
-                    [control.throttle, control.steer, control.brake]
-                )
-                for id, control in frame.vehicle_controls.items()
-                if history.role_names[id] in self.agents
-            }
-            obs, reward, terminated, truncated, info = self.step(actions)
-            self.render()
-        return obs, info
 
     def _get_events(self, criteria: Criterion) -> dict[str, list[TrafficEvent]]:
         events = defaultdict(list)

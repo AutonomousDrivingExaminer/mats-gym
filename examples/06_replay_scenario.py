@@ -6,6 +6,7 @@ from srunner.scenarios.cut_in import CutIn
 from mats_gym import BaseScenarioEnv
 from mats_gym.envs.renderers import camera_pov
 import mats_gym
+from mats_gym.wrappers import ReplayWrapper
 
 """
 This example shows how to use the replay functionality of the scenario environment.
@@ -42,17 +43,16 @@ def main():
         render_config=camera_pov(agent="scenario"),
         timeout=10,
     )
+    env = ReplayWrapper(env)
     obs, info = env.reset(seed=42)
 
     # Run the environment with a starting policy to generate a history of the scenario.
     info = run_env(env, lambda: {agent: np.array([0.75, 0, 0]) for agent in env.agents})
 
-    # the environment has a history attribute that contains the history of the scenario.
-    history = env.history
 
     # On the next reset, we can provide the history and the number of frames to replay. The environment will start from
     # the last frame of replay with the exact same state.
-    replay = {"history": str(history), "num_frames": 120}
+    replay = {}
 
     # Replay the environment to frame 100 and then continue with a different policy.
     policies = [
@@ -62,7 +62,20 @@ def main():
     ]
 
     for policy in policies:
-        obs, info = env.reset(seed=42, options={"replay": replay})
+        obs, info = env.reset(seed=42, options={"replay": {"num_frames": 100}})
+        t = 0
+        done = False
+        while not done:
+            if t >= 100:
+                actions = policy()
+            else:
+                actions = {} # Do nothing during the replay.
+            obs, reward, done, truncated, info = env.step(actions)
+            done = all(done.values())
+            env.render()
+            t += 1
+
+
         run_env(env, policy)
     env.close()
 

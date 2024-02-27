@@ -145,13 +145,14 @@ class ScenicScenarioConfiguration(ScenarioConfiguration):
     max_time_steps: int | None = None
     traffic_manager_port: int = 8000
     ego_vehicles: typing.List[ActorConfigurationData] = None
+    other_actors: typing.List[ActorConfigurationData] = dataclasses.field(default_factory=list)
     seed: int = None
     route = None
     trigger_points = None
 
 
 class ScenicActorConfigurationData(ActorConfigurationData):
-    route: typing.Optional[list[carla.Waypoint]] = None
+    route: typing.Optional[list[carla.Transform]] = None
 
     def __init__(
         self,
@@ -169,6 +170,35 @@ class ScenicActorConfigurationData(ActorConfigurationData):
         self.route = route
         super().__init__(
             model, transform, rolename, speed, autopilot, random, color, category, args
+        )
+
+    @staticmethod
+    def parse_from_dict(actor_dict, rolename):
+        actor_config = ActorConfigurationData.parse_from_dict(actor_dict, rolename)
+        tfs = actor_dict["route"] if "route" in actor_dict else []
+        route = [] if len(tfs) > 0 else None
+        for tf in tfs:
+            loc = carla.Location(
+                x=float(tf["x"]), y=float(tf["y"]), z=float(tf["z"])
+            )
+            rot = carla.Rotation(
+                pitch=float(tf["pitch"]),
+                yaw=float(tf["yaw"]),
+                roll=float(tf["roll"]),
+            )
+            route.append(carla.Transform(loc, rot))
+
+        return ScenicActorConfigurationData(
+            model=actor_config.model,
+            transform=actor_config.transform,
+            rolename=rolename,
+            route=route,
+            speed=actor_config.speed,
+            autopilot=actor_config.autopilot,
+            random=actor_config.random_location,
+            color=actor_config.color,
+            category=actor_config.category,
+            args=actor_config.args
         )
 
 
