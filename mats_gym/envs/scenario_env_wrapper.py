@@ -20,14 +20,6 @@ class BaseScenarioEnvWrapper(BaseParallelWrapper):
         super().__init__(env)
 
     @property
-    def history(self) -> SimulationHistory:
-        """
-        Returns the simulation history.
-        @return: The simulation history of the current episode.
-        """
-        return self.env.history
-
-    @property
     def client(self) -> carla.Client:
         """
         Returns the carla client.

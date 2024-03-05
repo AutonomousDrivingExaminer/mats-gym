@@ -28,7 +28,7 @@ class CameraRenderer:
         self._width = width
         self._height = height
         self._camera = None
-        self._frames = []
+        self._frame = np.zeros((self._height, self._width, 3))
         self._camera_transform = camera_transform
         self._display = None
         self._display_actor_id = display_actor_id
@@ -77,33 +77,26 @@ class CameraRenderer:
         self._camera = self._spawn_camera(
             camera_type=self._camera_type, width=self._width, height=self._height
         )
-        self._frames = []
+        self._frame = np.zeros((self._height, self._width, 3))
 
     def update(self):
         self._world: carla.World = self._client.get_world()
 
     def _render_human(self):
-        if len(self._frames) > 0:
-            surface = pygame.surfarray.make_surface(self._frames[-1].swapaxes(0, 1))
-            self._display.blit(surface, (0, 0))
+        surface = pygame.surfarray.make_surface(self._frame.swapaxes(0, 1))
+        self._display.blit(surface, (0, 0))
         pygame.display.flip()
 
     def _render_rgb_array(self):
-        return self._frames[-1]
-
-    def _render_rgb_array_list(self):
-        return self._frames
+        return self._frame
 
     def render(self):
         if self._render_mode == "rgb_array":
-            if len(self._frames) == 0:
-                return np.zeros((self._height, self._width, 3))
-            else:
-                return self._render_rgb_array()
+            return self._render_rgb_array()
         elif self._render_mode == "human":
             self._render_human()
-        elif self._render_mode == "rgb_array_list":
-            return self._render_rgb_array_list()
+        else:
+            raise ValueError(f"Render mode {self._render_mode} not supported.")
 
     def _add_text(self, text: str, image: np.ndarray):
         scale, thickness = 2.0, 2
@@ -133,7 +126,7 @@ class CameraRenderer:
         array = np.array(array[:, :, ::-1])
         if self._display_actor_id:
             self._add_text(text=self._actor_id, image=array)
-        self._frames.append(array)
+        self._frame = array
 
     def close(self):
         if self._camera is not None:

@@ -14,6 +14,8 @@ def _make_env(ctor: Type[gymnasium.Env], **kwargs):
     if host is not None and port is not None:
         client = carla.Client(host, port)
         client.set_timeout(10.0)
+    elif "client" in kwargs:
+        client = kwargs["client"]
     else:
         client = None
     kwargs["client"] = client

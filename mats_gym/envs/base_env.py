@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import copy
 import logging
 import random
 import typing
 from collections import defaultdict
-from copy import deepcopy
 from typing import Optional, Union, List
 
 import carla
 import gymnasium
 import numpy as np
-import psutil
 import py_trees
 from gymnasium.core import RenderFrame, ObsType
 from pettingzoo import ParallelEnv
@@ -26,18 +23,11 @@ from srunner.scenarios.basic_scenario import BasicScenario
 
 from mats_gym.envs import renderers, space_utils
 from mats_gym.envs.evaluation import RouteEvaluator
-from mats_gym.envs.replays import SimulationHistory, Frame
 from mats_gym.scenarios.scenario_wrapper import ScenarioWrapper
 from mats_gym.sensors import SensorSuite
+from mats_gym.util import network
 
-
-def is_used(port):
-    """Checks whether a port is used"""
-    return port in [conn.laddr.port for conn in psutil.net_connections()]
-
-
-def get_next_free_port(port):
-    return next(filter(lambda p: not is_used(p), range(port, 32000)))
+import time
 
 
 class BaseScenarioEnv(ParallelEnv):
@@ -45,7 +35,7 @@ class BaseScenarioEnv(ParallelEnv):
     Base class for scenario environments. This class manages the execution of a scenario.
     """
 
-    metadata = {"render_modes": ["human", "rgb_array", "rgb_array_list"]}
+    metadata = {"render_modes": ["human", "rgb_array"]}
 
     def __init__(
             self,
@@ -61,7 +51,6 @@ class BaseScenarioEnv(ParallelEnv):
             render_mode: str = None,
             render_config: renderers.RenderConfig = renderers.RenderConfig(),
             infractions_penalties: dict[TrafficEventType, float] = None,
-            replay_dir: str = "/home/carla",
             debug_mode: bool = False,
             timestep: float = 0.05,
             traffic_manager_port: int = None,
@@ -77,13 +66,12 @@ class BaseScenarioEnv(ParallelEnv):
         @param render_mode: The render mode to use. One of "human" or "rgb_array". Default: None.
         @param render_config: A render configuration instance. Default: @see mats_gym.envs.renderers.RenderConfig.
         @param infractions_penalties: A dictionary mapping traffic event types to penalties. Default: None.
-        @param replay_dir: The directory to store replays in. Default: "/home/carla".
         @param debug_mode: Whether to use debug mode. Enabling debug mode will print additional information. Default: False.
         @param timestep: The timestep to use for the environment. Default: 0.05.
         @param traffic_manager_port: The port to use for the traffic manager. Default: 8000 or the next free port.
         """
         if traffic_manager_port is None:
-            traffic_manager_port = get_next_free_port(8000)
+            traffic_manager_port = network.get_next_free_port(8000)
 
         self._traffic_manager_port = traffic_manager_port
         CarlaDataProvider.set_traffic_manager_port(traffic_manager_port)
@@ -105,7 +93,6 @@ class BaseScenarioEnv(ParallelEnv):
         self._current_step = 0
         self._num_resets = 0
         self._sensor_specs = sensor_specs or {}
-        self._replay_dir = replay_dir
         self._sensors = self._make_sensor_suites(self._sensor_specs)
         self._evaluator = RouteEvaluator(infractions_penalties)
 
@@ -175,21 +162,10 @@ class BaseScenarioEnv(ParallelEnv):
         if self._scenario is None:
             return {agent: None for agent in self.agents}
         else:
-             return {
+            return {
                 agent.attributes.get("role_name", agent.id): agent
                 for agent in self._scenario.ego_vehicles + self._scenario.other_actors
             }
-
-    @property
-    def history(self) -> SimulationHistory:
-        """
-        Returns the simulation history.
-        @return: The simulation history of the current episode.
-        """
-        history = self.client.show_recorder_file_info(
-            f"{self._replay_dir}/scenario-env.log", True
-        )
-        return SimulationHistory(history)
 
     @property
     def scenario_status(self) -> py_trees.common.Status:
@@ -259,11 +235,12 @@ class BaseScenarioEnv(ParallelEnv):
 
         return obs
 
-    def _reload_world(self):
+    def _reload_world(self, reload_world: bool = True):
         world = self._client.get_world()
         world.tick()
         settings: carla.WorldSettings = world.get_settings()
-        map_name = world.get_map().name.split("/")[-1]
+        map = world.get_map()
+        map_name = map.name.split("/")[-1]
 
         if (
                 not settings.synchronous_mode
@@ -282,14 +259,15 @@ class BaseScenarioEnv(ParallelEnv):
         self._client.apply_batch_sync(
             [carla.command.DestroyActor(x) for x in world.get_actors()]
         )
-        self._client.get_world().tick()
+        world.tick()
 
-        if map_name == self._config.town:
+        if map_name == self._config.town and reload_world:
             logging.debug(f"Reloading world.")
             world = self._client.reload_world(reset_settings=False)
-        else:
+        elif map_name != self._config.town:
             logging.debug(f"Loading world with map {self._config.town}.")
             world = self._client.load_world(self._config.town, reset_settings=False)
+            map = world.get_map()
 
         if self._seed is not None:
             logging.debug(
@@ -304,7 +282,7 @@ class BaseScenarioEnv(ParallelEnv):
         CarlaDataProvider.cleanup()
         CarlaDataProvider.set_client(self._client)
         CarlaDataProvider.set_world(world)
-        CarlaDataProvider.get_map()
+        CarlaDataProvider._map = map
 
     def reset(
             self,
@@ -319,9 +297,7 @@ class BaseScenarioEnv(ParallelEnv):
             - traffic_manager_port: The port to use for the traffic manager.
             - scenario_config: A scenario configuration instance.
             - scenario_wrappers: A list of scenario wrappers to apply to the scenario.
-            - replay: A dictionary containing
-                 - history: A simulation history instance.
-                 - num_frames: The number of frames to replay. Default: len(history).
+
         @return: A tuple containing the observations and info.
         """
         options = options or {}
@@ -345,7 +321,6 @@ class BaseScenarioEnv(ParallelEnv):
         if self._scenario is not None:
             self._scenario.terminate()
 
-        self.client.stop_recorder()
         for suite in self._sensors.values():
             suite.cleanup()
         self._sensors = self._make_sensor_suites(self._sensor_specs)
@@ -365,9 +340,8 @@ class BaseScenarioEnv(ParallelEnv):
             logging.info(f"Reset with new scenario wrappers.")
 
         logging.info(f"Resetting world.")
-        self._reload_world()
+        self._reload_world(options.get("always_reload_world", True))
         logging.debug(f"Number of actors: {len(self.client.get_world().get_actors())}.")
-
 
         logging.info(f"Calling scenario function to reset scenario.")
         scenario = self._scenario_fn(self.client, self._config)
@@ -375,7 +349,6 @@ class BaseScenarioEnv(ParallelEnv):
         for wrapper in self._scenario_wrappers:
             scenario = wrapper.wrap(scenario)
 
-        self.client.start_recorder(f"{self._replay_dir}/scenario-env.log")
         self._scenario: BasicScenario = scenario
         self.possible_agents = [agent.rolename for agent in self._config.ego_vehicles]
         self.agents = self.possible_agents[:]
@@ -406,7 +379,6 @@ class BaseScenarioEnv(ParallelEnv):
         self._events = {node.id: [] for node in self._scenario.get_criteria()}
         self._current_step = 0
 
-
         obs = {agent: self.observe(agent) for agent in self.agents}
         info = self._get_simulation_info()
 
@@ -428,8 +400,8 @@ class BaseScenarioEnv(ParallelEnv):
         @param action: A dictionary mapping agent names to actions.
         @return: A tuple containing the observations, rewards, terminated, truncated, and info.
         """
-
-        # Apply actions and keep track of action history
+        start = time.time()
+        # Apply actions
         self._apply_actions(action)
 
         # Update simulation and monitors
@@ -472,7 +444,9 @@ class BaseScenarioEnv(ParallelEnv):
 
         if self._renderer:
             self._renderer.update()
-
+        duration = (time.time() - start)
+        info["__common__"]["fps"] = 1 / duration * self._timestep
+        info["__common__"]["seconds_per_step"] = duration
         return obs, rewards, terminated, truncated, info
 
     def _apply_actions(self, actions):
@@ -517,7 +491,6 @@ class BaseScenarioEnv(ParallelEnv):
             controls[agent] = control
 
         self.client.apply_batch_sync(commands)
-        self.controls.append(controls)
 
     def render(self) -> Optional[Union[RenderFrame, List[RenderFrame]]]:
         """

@@ -52,7 +52,10 @@ class SensorSuite:
         Returns the observations of all sensors combined in a dictionary.
         :
         """
-        return self._sensor_interface.get_data()
+        data = self._sensor_interface.get_data()
+        return {
+            id: data[id][1] for id in data
+        }
 
     @property
     def observation_space(self) -> spaces.Dict:
