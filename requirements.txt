@@ -5,7 +5,7 @@ gymnasium
 pygame
 networkx>=2.3
 git+https://github.com/BerkeleyLearnVerify/Scenic.git@serialization#egg=scenic
-git+https://github.com/AutonomousDrivingExaminer/scenario_runner.git#egg=srunner
+git+https://github.com/AutonomousDrivingExaminer/scenario_runner.git@leaderboard-2.0#egg=srunner
 git+https://github.com/AutonomousDrivingExaminer/leaderboard.git#egg=leaderboard
 pettingzoo
 multiprocess

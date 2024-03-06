@@ -4,11 +4,12 @@ import carla
 import gymnasium
 import pettingzoo
 
+from mats_gym.envs import RouteScenarioEnv
 from mats_gym.envs.base_env import BaseScenarioEnv
 from mats_gym.envs.adapters import ScenarioRunnerEnv, ScenicEnv, OpenScenarioEnv
 
 
-def _make_env(ctor: Type[gymnasium.Env], **kwargs):
+def _make_env(ctor: Type, **kwargs):
     host = kwargs.pop("host", None)
     port = kwargs.pop("port", None)
     if host is not None and port is not None:
@@ -39,3 +40,7 @@ def openscenario_env(host: str = None, port: int = None, **kwargs) -> OpenScenar
         host is not None and port is not None
     ), "Must specify client or host and port."
     return _make_env(OpenScenarioEnv, host=host, port=port, **kwargs)
+
+def route_scenario_env(host: str = None, port: int = None, **kwargs) -> RouteScenarioEnv:
+    return _make_env(RouteScenarioEnv, host=host, port=port, **kwargs)
+

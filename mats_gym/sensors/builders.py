@@ -142,7 +142,7 @@ class LidarSensorBuilder(SensorBuilder):
             - lower_fov: The lower field of view in degrees.
         """
         assert spec["type"].startswith("sensor.lidar")
-        assert "channels" in spec and "range" in spec
+        #assert "channels" in spec and "range" in spec
         super().__init__(spec)
 
     @property

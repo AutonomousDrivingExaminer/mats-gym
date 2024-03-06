@@ -40,12 +40,12 @@ class AutopilotAgent(AutonomousAgent):
         if self._agent and route:
             plan = []
             map = CarlaDataProvider.get_map()
-            for loc, option in route:
-                wp = (map.get_waypoint(loc), option)
+            for tf, option in route:
+                wp = (map.get_waypoint(tf.location), option)
                 plan.append(wp)
                 if self._debug:
                     world.debug.draw_point(
-                        loc, size=0.1, color=carla.Color(0, 255, 0), life_time=120.0
+                        tf.location, size=0.1, color=carla.Color(0, 255, 0), life_time=120.0
                     )
             self._agent.set_global_plan(plan)
 

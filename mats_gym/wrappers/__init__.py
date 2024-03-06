@@ -12,3 +12,4 @@ from .server import ServerWrapper
 from .task_wrapper import TaskWrapper
 from .black_death import BlackDeathWrapper
 from .replay_wrapper import ReplayWrapper
+from .roadgraph_wrapper import RoadGraphObservationWrapper
