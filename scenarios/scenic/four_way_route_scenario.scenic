@@ -3,8 +3,8 @@ param map = localPath('../maps/Town05.xodr')  # or other CARLA map that definite
 param carla_map = 'Town05'
 model scenic.simulators.carla.model
 
-DISTANCE_TO_INTERSECTION = Uniform(15, 20) * -1
-NUM_VEHICLES = 1
+DISTANCE_TO_INTERSECTION = Uniform(5, 25) * -1
+NUM_VEHICLES = 16
 
 class RouteFollowingCar(Car):
     route: list[Lane]
@@ -21,14 +21,14 @@ intersection = Uniform(*four_way_intersections)
 maneuvers = intersection.maneuvers
 for i in range(NUM_VEHICLES):
     maneuver = Uniform(*maneuvers)
-    maneuvers.remove(maneuver)
     route = [maneuver.startLane, maneuver.connectingLane, maneuver.endLane]
-    vehicle = RouteFollowingCar following roadDirection from maneuver.startLane.centerline[-1] for DISTANCE_TO_INTERSECTION,
-        with route route,
-        with rolename f"vehicle_{i}",
-        with color Color(0,1,0)
+    vehicle = RouteFollowingCar at (OrientedPoint in maneuver.startLane.centerline),
+        with rolename "agent_" + str(i),
+        with name "agent_" + str(i),
+        with route route
+    print(f"Vehicle ", vehicle, vehicle.rolename)
     vehicles.append(vehicle)
 
 ego = vehicles[0]
 
-terminate after 15 seconds
+terminate after 30 seconds

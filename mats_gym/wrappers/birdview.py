@@ -54,12 +54,28 @@ class BirdViewObservationWrapper(BaseScenarioEnvWrapper):
         @param obs_config: A ObservationConfig instance or a dictionary mapping agent names to ObservationConfig instances.
         """
         super().__init__(env)
+        assert env.client is not None, "Client must be set on initialization for BirdViewObservationWrapper"
         if not isinstance(obs_config, dict):
             obs_config = {agent: obs_config for agent in self.agents}
 
         self._config = obs_config
         self._map = None
         self._producers = {}
+
+        for agent, config in self._config.items():
+            vehicle_classes = config.vehicle_class_prefixes or []
+            self._producers[agent] = BirdViewProducer(
+                client=self.env.client,
+                vehicle_class_classification=[
+                    self._make_classifier(prefix) for prefix in vehicle_classes
+                ],
+                render_lanes_on_junctions=True,
+                target_size=PixelDimensions(
+                    width=config.width, height=config.height
+                ),
+                pixels_per_meter=config.pixels_per_meter,
+                crop_type=config.crop_type,
+            )
 
     def reset(
         self, seed: int | None = None, options: dict | None = None
