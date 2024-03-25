@@ -32,22 +32,19 @@ def main():
         format="%(asctime)s - %(filename)s - [%(levelname)s] - %(message)s",
     )
 
-    # There exists a gymnasium factory with id "ScenicEnv-v0" that can be used to create a ScenicEnv.
+    # MATS-Gym also supports Scenic scenarios. Scenic is a probabilistic programming language for generating complex
+    # scenarios. The Scenic environment adapter can be used to load Scenic scenarios and generate scenes from them.
     # You can provide either a single scenario or a list of scenarios. Moreover, you can control how many scenes per
     # scenario should be generated.
     env = mats_gym.scenic_env(
         host="localhost",  # The host to connect to
         port=2000,  # The port to connect to
-        scenario_specification="scenarios/scenic/carla_challenge_08.scenic",
-        # Path to the scenario specification
+        scenario_specification="scenarios/scenic/carla_challenge_08.scenic", # Path to the scenario specification
         scenes_per_scenario=5,  # How many scenes should be generated per scenario
-        resample_scenes=False,
-        # if True, the scenes are resampled after all initial scenes have been used.
-        agent_name_prefixes=["sut", "adv"],
-        # Each actor whose role-name starts with one of the prefixes is an agent.
+        resample_scenes=False, # if True, the scenes are resampled after all initial scenes have been used.
+        agent_name_prefixes=["sut", "adv"], # Each actor whose role-name starts with one of the prefixes is an agent.
         render_mode="human",  # The render mode. Can be "human", "rgb_array", "rgb_array_list".
-        render_config=renderers.camera_pov(agent="sut"),
-        # See adex_gym.envs.renderers for more render configs.
+        render_config=renderers.camera_pov(agent="sut"), # See adex_gym.envs.renderers for more render configs.
         params={
             "MANEUVER_TYPE": ManeuverType.LEFT_TURN.value,
             "NPC_MANEUVER_CONFLICT_ONLY": True,

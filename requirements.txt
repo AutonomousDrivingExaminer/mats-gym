@@ -4,9 +4,9 @@ opencv-python
 gymnasium
 pygame
 networkx>=2.3
-git+https://github.com/BerkeleyLearnVerify/Scenic.git@serialization#egg=scenic
-git+https://github.com/AutonomousDrivingExaminer/scenario_runner.git@leaderboard-2.0#egg=srunner
-git+https://github.com/AutonomousDrivingExaminer/leaderboard.git#egg=leaderboard
+scenic @ git+https://github.com/BerkeleyLearnVerify/Scenic.git@serialization
+srunner @ git+https://github.com/AutonomousDrivingExaminer/scenario_runner.git@leaderboard-2.0
+leaderboard @ git+https://github.com/AutonomousDrivingExaminer/leaderboard.git
 pettingzoo
 multiprocess
 docker

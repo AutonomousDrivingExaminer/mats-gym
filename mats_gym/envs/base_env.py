@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import random
 import typing
@@ -130,6 +131,7 @@ class BaseScenarioEnv(ParallelEnv):
     def _make_sensor_suites(self, sensor_specs):
         return {actor: SensorSuite(sensor_specs[actor]) for actor in sensor_specs}
 
+    @functools.lru_cache(maxsize=None)
     def action_space(self, agent: str) -> gymnasium.spaces.Space:
         config = [c for c in self._config.ego_vehicles if c.rolename == agent]
         assert len(config) != 0, f"Unknown agent: {agent}"
@@ -142,6 +144,7 @@ class BaseScenarioEnv(ParallelEnv):
         else:
             raise ValueError(f"Unknown action type for model: {type(agent_cfg.model)}")
 
+    @functools.lru_cache(maxsize=None)
     def observation_space(self, agent: str) -> gymnasium.spaces.Space:
         config = [c for c in self._config.ego_vehicles if c.rolename == agent]
         assert len(config) != 0, f"Unknown agent: {agent}"

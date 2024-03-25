@@ -10,7 +10,7 @@ from mats_gym.servers import DockerCarlaServer
 
 class TestScenicEnvAPI(unittest.TestCase):
     def setUp(self) -> None:
-        self.server = utils.start_server(port=2000)
+        self.server = utils.start_server(port=2000, image="carlasim/carla:0.9.15")
 
     unittest.skip("Temporarily disabled.")
     def test_openscenario_env_api(self):
@@ -40,7 +40,6 @@ class TestScenicEnvAPI(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.server.stop()
-        time.sleep(2.0)
 
 
 if __name__ == "__main__":

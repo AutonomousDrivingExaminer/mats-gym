@@ -1,4 +1,4 @@
-param map = localPath('./maps/Town05.xodr')
+param map = localPath('../maps/Town05.xodr')
 param carla_map = 'Town05'
 model scenic.simulators.carla.model
 

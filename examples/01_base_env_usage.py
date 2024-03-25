@@ -2,7 +2,7 @@ import logging
 import carla
 import gymnasium
 import numpy as np
-from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration
+from srunner.scenarioconfigs.scenario_configuration import ScenarioConfiguration, ActorConfigurationData
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from srunner.scenarios.cut_in import CutIn
 from srunner.tools.scenario_parser import ScenarioConfigurationParser
@@ -88,19 +88,39 @@ def main():
     # will contain an entry for each sensor with its corresponding id. Sensor specs are of the same format as in
     # the autonomous driving challenge (https://leaderboard.carla.org/get_started/#33-override-the-sensors-method).
 
-    configs = ScenarioConfigurationParser.parse_scenario_configuration(
-        scenario_name="CutInFrom_left_Lane",
-        additional_config_file_name="scenarios/scenario-runner/CutIn.xml",
+    # If you wish to run the base environment, you need to set up the scenario configuration manually.
+    config = ScenarioConfiguration()
+    config.name = "cut_in"
+    config.town = "Town04"
+    ego_vehicle = ActorConfigurationData(
+        rolename="ego",
+        model="vehicle.lincoln.mkz2017",
+        transform=carla.Transform(
+            carla.Location(x=284.4, y=16.4, z=2.5),
+            carla.Rotation(yaw=180)
+        )
     )
-    config = configs[0]
+    config.ego_vehicles = [ego_vehicle]
+    config.trigger_points = [ego_vehicle.transform]
+    config.other_actors = [ActorConfigurationData(
+        model="vehicle.tesla.model3",
+        rolename="scenario",
+        transform=carla.Transform(
+            carla.Location(x=324.2, y=20.7, z=2.5 - 105), # Original scenario let the car fall from the sky (for some reason)
+            carla.Rotation(yaw=180)
+        )
+    )]
+    config.weather = carla.WeatherParameters(sun_altitude_angle=75)
+
+    # This config is then passed to the base environment.
     env = mats_gym.raw_env(
         config=config,  # The scenario configuration.
         scenario_fn=scenario_fn,  # A function that takes a carla client and a scenario config to instantiate a scenario.
         render_mode="human",  # The render mode. Can be "human", "rgb_array", "rgb_array_list".
         render_config=renderers.camera_pov(
-            agent="scenario"
+            agent="scenario",  # The agent to follow with the camera.
         ),  # See adex_gym.envs.renderers for more render configs.
-        sensor_specs={"hero": SENSOR_SPECS},  # sensor specs for each agent
+        sensor_specs={"ego": SENSOR_SPECS},  # sensor specs for each agent
     )
 
     for _ in range(NUM_EPISODES):
