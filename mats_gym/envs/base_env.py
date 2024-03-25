@@ -223,10 +223,10 @@ class BaseScenarioEnv(ParallelEnv):
         # compute speed by projecting velocity into forward direction
         forward_vector = transform.get_forward_vector()
         velocity_vector = obs["velocity"]
-        obs["speed"] = np.dot(
+        obs["speed"] = np.array(np.dot(
             velocity_vector,
             np.array([forward_vector.x, forward_vector.y, forward_vector.z]),
-        )
+        ), dtype=np.float32)
 
         # retrieve sensor observations
         if agent in self._sensors:

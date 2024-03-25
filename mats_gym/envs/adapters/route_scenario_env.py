@@ -3,6 +3,7 @@ from xml.etree import ElementTree
 
 import carla
 import gymnasium
+import numpy as np
 import srunner
 from pettingzoo.utils.env import AgentID, ObsType
 from srunner.scenarioconfigs.route_scenario_configuration import RouteScenarioConfiguration
@@ -49,7 +50,7 @@ class RouteScenarioEnv(BaseScenarioEnvWrapper):
 
     def observation_space(self, agent: AgentID) -> gymnasium.spaces.Space:
         obs_space = self.env.observation_space(agent)
-        obs_space["progress"] = gymnasium.spaces.Box(low=0, high=1, shape=(1,), dtype=float)
+        obs_space["progress"] = gymnasium.spaces.Box(low=0, high=1, shape=(), dtype=np.float32)
         return obs_space
 
     def _scenario_fn(self, client, config):
@@ -60,12 +61,13 @@ class RouteScenarioEnv(BaseScenarioEnvWrapper):
         for agent in self.env.agents:
             progress = self._get_progress(info, agent=agent)
             self._progress[agent] = progress
-            obs[agent]["progress"] = progress
+        obs = self._add_progress(obs)
         return obs, reward, term, trun, info
 
-    def observe(self, agent: str) -> dict:
-        obs = self.env.observe(agent)
-        obs["progress"] = self._progress.get(agent, 0)
+
+    def _add_progress(self, obs: dict) -> dict:
+        for agent in self.agents:
+            obs[agent]["progress"] = np.array(self._progress.get(agent, 0), dtype=np.float32)
         return obs
 
     def reset(self, seed: int | None = None, options: dict | None = None) -> tuple[dict[AgentID, ObsType], dict[AgentID, dict]]:
@@ -93,7 +95,9 @@ class RouteScenarioEnv(BaseScenarioEnvWrapper):
             self.actors[self._ego_role_name].set_transform(wp.transform)
             CarlaDataProvider.get_world().tick()
             self._progress = {agent: options.get("progress", progress) for agent in self.agents}
-            obs = {self._ego_role_name: self.observe(self._ego_role_name)}
+            obs = {self._ego_role_name: self.env.observe(self._ego_role_name)}
+
+        obs = self._add_progress(obs)
 
 
         current_route = self.current_scenario.route
