@@ -251,12 +251,12 @@ class ScenicScenario(BasicScenario):
             record=False,
             scenario_number=0,
         )
-        self._simulation.initializeReplay(
-            replay=None,
-            enableReplay=True,
-            allowPickle=True,
-            enableDivergenceCheck=False,
-        )
+        #self._simulation.initializeReplay(
+        #    replay=None,
+        #    enableReplay=True,
+        #    allowPickle=True,
+        #    enableDivergenceCheck=False,
+        #)
         world.tick()
         logging.debug("Finished initializing environment.")
 
